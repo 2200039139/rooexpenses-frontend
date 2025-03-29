@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './res.css';
 
-const API_URL = 'http://localhost:10756/api';
+const API_URL = 'https://room-backend-production.up.railway.app/api';
+
 
 // Currency configuration
 const CURRENCY = {
