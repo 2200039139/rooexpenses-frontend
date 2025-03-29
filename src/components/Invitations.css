@@ -1,0 +1,77 @@
+.invitations-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 20px;
+  }
+  
+  .invitations-tabs {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+  }
+  
+  .tab-button {
+    padding: 10px 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    color: #666;
+  }
+  
+  .tab-button.active {
+    color: #2c3e50;
+    font-weight: bold;
+    border-bottom: 2px solid #2c3e50;
+  }
+  
+  .invitation-card {
+    background: white;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 15px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .invitation-info h3 {
+    margin-top: 0;
+    color: #2c3e50;
+  }
+  
+  .invitation-actions {
+    display: flex;
+    gap: 10px;
+  }
+  
+  .accept-button, .decline-button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+  }
+  
+  .accept-button {
+    background-color: #27ae60;
+    color: white;
+  }
+  
+  .decline-button {
+    background-color: #e74c3c;
+    color: white;
+  }
+  
+  .empty-state {
+    text-align: center;
+    color: #7f8c8d;
+    padding: 40px 0;
+  }
+  
+  .loading {
+    text-align: center;
+    padding: 20px;
+    color: #7f8c8d;
+  }
