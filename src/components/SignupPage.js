@@ -57,7 +57,7 @@ const SignupPage = () => {
     setIsLoading(true);
     try {
       // Send Google token to your backend
-      const backendResponse = await fetch('http://localhost:10756/api/users/google-auth', {
+      const backendResponse = await fetch('https://rooexpenses-frontend.vercel.app/api/users/google-auth', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -123,7 +123,7 @@ const SignupPage = () => {
     
     try {
       // Send registration data to backend
-      const response = await fetch('http://localhost:10756/api/users/register', {
+      const response = await fetch('https://rooexpenses-frontend.vercel.app/api/users/register', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
