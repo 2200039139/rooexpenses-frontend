@@ -123,7 +123,7 @@ const LoginPage = () => {
       {/* Left side - Login form */}
       <div className="login-side">
         <div className="login-card">
-          <button className="back-button" onClick={() => navigate('/')}><-
+          <button className="back-button" onClick={() => navigate('/')}> homepage
             
           </button>
 
