@@ -10,23 +10,11 @@ const CURRENCY = {
   symbol: '₹',
   conversionRate: 1,
 };
-const PopupNotice = ({ onClose }) => (
-  <div className="popup-overlay">
-    <div className="popup-box">
-      <h3>Upcoming Login Update</h3>
-      <p>
-        <strong>Right now, all members share one login per room.</strong><br /><br />
-        We're working on a new system where <strong>each member will have their own individual login</strong> for better privacy, activity tracking, and personalized notifications.
-        <br /><br />
-        Stay tuned — this update is coming soon!
-      </p>
-      <button className="btn primary" onClick={onClose}>Got it!</button>
-    </div>
-  </div>
-);
+
 
 
 const RoommateExpenseTracker = () => {
+  const [showPopup, setShowPopup] = useState(true);
   const [roommates, setRoommates] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [newRoommate, setNewRoommate] = useState('');
@@ -40,7 +28,9 @@ const RoommateExpenseTracker = () => {
   const [activeTab, setActiveTab] = useState('roommates');
   const [isLoading, setIsLoading] = useState(true);
   const [ setError] = useState(null);
-  
+   const handleClosePopup = () => {
+    setShowPopup(false);
+  };
   // Authentication state
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || null);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
@@ -58,7 +48,20 @@ const RoommateExpenseTracker = () => {
     date: new Date().toISOString().split('T')[0]
   });
   const [historyTab, setHistoryTab] = useState('expenses');
-
+  const PopupNotice = ({ onClose }) => (
+  <div className="popup-overlay">
+    <div className="popup-box">
+      <h3>Important Update About Logins</h3>
+      <p>
+        Currently, all roommates in a group share a single login.<br /><br />
+        We're actively working on a major update that will allow <strong>each roommate to have their own personal login</strong>. This means better security, personalized notifications, and a smoother experience for everyone.
+        <br /><br />
+        Thanks for being part of RoomExpense — we’re excited to bring you this upgrade soon!
+      </p>
+      <button className="btn primary" onClick={onClose}>Got it!</button>
+    </div>
+  </div>
+);
   // Show notification helper function
   const showNotification = (message, type = 'success') => {
     setNotification({ show: true, message, type });
@@ -510,6 +513,8 @@ const RoommateExpenseTracker = () => {
     
     return suggestions.length > 0 ? suggestions : null;
   };
+  
+
 
   const paymentSuggestions = generatePaymentSuggestions();
 
@@ -585,11 +590,13 @@ const getMonthlyTotals = () => {
 };
 // Then, modify your history section in the JSX:
 
-const [showPopup, setShowPopup] = useState(true);
+
 
   return (
     <div className="app-container">
-    {showPopup && <PopupNotice onClose={() => setShowPopup(false)} />}
+    {showPopup && <PopupNotice onClose={handleClosePopup} />}
+    
+   
       {notification.show && (
         <div className={`notification notification-${notification.type}`}>
           <span className="notification-message">{notification.message}</span>
