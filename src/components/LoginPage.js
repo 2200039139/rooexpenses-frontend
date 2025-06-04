@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { FiArrowLeft,  FiCheck, FiInfo } from 'react-icons/fi';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -123,8 +124,8 @@ const LoginPage = () => {
       {/* Left side - Login form */}
       <div className="login-side">
         <div className="login-card">
-          <button className="back-button" onClick={() => navigate('/')}> homepage
-            
+          <button className="back-button" onClick={() => navigate('/')}>
+            <FiArrowLeft size={18} />
           </button>
 
           
