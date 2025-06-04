@@ -1,7 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import './Invitations.css';
-import hpImage from './hp.jpg';
 
 // Data for reusable components
 const features = [
@@ -97,7 +96,6 @@ const HomePage = () => {
           </div>
         </div>
         <div className="hero-image">
-        <img src={hpImage} alt="Expense tracking illustration" loading="lazy" />
 
         </div>
       </section>
