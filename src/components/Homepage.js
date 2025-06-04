@@ -51,18 +51,18 @@ const FooterColumn = ({ title, items }) => (
 const PopupNotice = ({ onClose }) => (
   <div className="popup-overlay">
     <div className="popup-box">
-      <h3>Important Update</h3>
+      <h3>Upcoming Login Update</h3>
       <p>
-        We are updating our login system. Previously, one login was shared among all roommates.
+        <strong>Right now, all members share one login per room.</strong><br /><br />
+        We're working on a new system where <strong>each member will have their own individual login</strong> for better privacy, activity tracking, and personalized notifications.
         <br /><br />
-        <strong>Now, each roommate will have their own login account</strong> for better privacy and tracking.
-        <br /><br />
-        We’ll notify you once the update is complete.
+        Stay tuned — this update is coming soon!
       </p>
       <button className="btn primary" onClick={onClose}>Got it!</button>
     </div>
   </div>
 );
+
 
 // Main Component
 const HomePage = () => {
