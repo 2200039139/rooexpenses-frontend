@@ -75,6 +75,7 @@ useEffect(() => {
         new Notification(title, options);
       } catch (e) {
         console.warn('Notification error:', e);
+        alert(title + ': ' + (options.body || ''));
        
       }
     }
@@ -86,6 +87,7 @@ try {
 } catch (e) {
   console.error('Notification failed:', e);
   // Fallback to console or other notification method
+  
 }
 
   // Show notification helper function (both in-app and browser)
@@ -100,7 +102,7 @@ try {
     if (showBrowserNotif && notificationPermission === 'granted') {
       showBrowserNotification('RoomExpense', {
         body: message,
-        icon: '/favicon.ico' // You can add your app icon here
+        icon: '/fvicon.jpg' // You can add your app icon here
       });
     }
   };
