@@ -585,7 +585,7 @@ const getMonthlyTotals = () => {
 };
 // Then, modify your history section in the JSX:
 
-
+const [showPopup, setShowPopup] = useState(true);
 
   return (
     <div className="app-container">
