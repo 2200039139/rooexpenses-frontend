@@ -1,40 +1,19 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import './Invitations.css';
 import hpImage from './Flux_Dev_a_25yearold_woman_with_curly_brown_hair_and_warm_beig_1.jpg';
-// Data for reusable components
+
+// Data
 const features = [
-  {
-    icon: '💸',
-    title: 'Easy Splitting',
-    description: 'Split bills among roommates with just a few clicks.'
-  },
-  {
-    icon: '📊',
-    title: 'Visual Reports',
-    description: 'See clear charts of who owes what at a glance.'
-  },
-  {
-    icon: '🔔',
-    title: 'Payment Reminders',
-    description: 'Automated reminders to keep everyone on track.'
-  },
-  {
-    icon: '📱',
-    title: 'Mobile Friendly',
-    description: 'Access from any device, anywhere.'
-  }
+  { icon: '💸', title: 'Easy Splitting', description: 'Split bills among roommates with just a few clicks.' },
+  { icon: '📊', title: 'Visual Reports', description: 'See clear charts of who owes what at a glance.' },
+  { icon: '🔔', title: 'Payment Reminders', description: 'Automated reminders to keep everyone on track.' },
+  { icon: '📱', title: 'Mobile Friendly', description: 'Access from any device, anywhere.' }
 ];
 
 const testimonials = [
-  {
-    quote: "RoomExpense saved our friendship! No more arguments about who paid for what.",
-    author: "- Sarah, Bangalore"
-  },
-  {
-    quote: "As someone who hates math, this app is a lifesaver for splitting expenses fairly.",
-    author: "- Rohan, Mumbai"
-  }
+  { quote: "RoomExpense saved our friendship! No more arguments about who paid for what.", author: "- Sarah, Bangalore" },
+  { quote: "As someone who hates math, this app is a lifesaver for splitting expenses fairly.", author: "- Rohan, Mumbai" }
 ];
 
 const footerLinks = {
@@ -63,19 +42,41 @@ const FooterColumn = ({ title, items }) => (
   <div className="link-column">
     <h4>{title}</h4>
     {items.map((item, index) => (
-      <Link key={index} to={`/${item.toLowerCase().replace(' ', '-')}`}>
-        {item}
-      </Link>
+      <Link key={index} to={`/${item.toLowerCase().replace(' ', '-')}`}>{item}</Link>
     ))}
+  </div>
+);
+
+// Popup component
+const PopupNotice = ({ onClose }) => (
+  <div className="popup-overlay">
+    <div className="popup-box">
+      <h3>Important Update</h3>
+      <p>
+        We are updating our login system. Previously, one login was shared among all roommates.
+        <br /><br />
+        <strong>Now, each roommate will have their own login account</strong> for better privacy and tracking.
+        <br /><br />
+        We’ll notify you once the update is complete.
+      </p>
+      <button className="btn primary" onClick={onClose}>Got it!</button>
+    </div>
   </div>
 );
 
 // Main Component
 const HomePage = () => {
   const currentYear = new Date().getFullYear();
+  const [showPopup, setShowPopup] = useState(true);
+
+  useEffect(() => {
+    // You can optionally delay the popup here using setTimeout
+  }, []);
 
   return (
     <div className="homepage">
+      {showPopup && <PopupNotice onClose={() => setShowPopup(false)} />}
+
       {/* Navigation */}
       <nav className="navbar">
         <div className="logo">RoomExpense</div>
@@ -85,7 +86,7 @@ const HomePage = () => {
         </div>
       </nav>
 
-      {/* Hero Section */}
+      {/* Hero */}
       <section className="hero">
         <div className="hero-content">
           <h1>Track Shared Expenses with Ease</h1>
@@ -96,11 +97,11 @@ const HomePage = () => {
           </div>
         </div>
         <div className="hero-image">
-<img src={hpImage} alt="Expense tracking illustration" loading="lazy" />
+          <img src={hpImage} alt="Expense tracking illustration" loading="lazy" />
         </div>
       </section>
 
-      {/* Features Section */}
+      {/* Features */}
       <section className="features">
         <h2>Why Choose RoomExpense?</h2>
         <div className="features-grid">
@@ -120,7 +121,7 @@ const HomePage = () => {
         </div>
       </section>
 
-      {/* CTA Section */}
+      {/* CTA */}
       <section className="cta">
         <h2>Ready to Simplify Your Shared Expenses?</h2>
         <p>Join thousands of happy users managing their shared living costs effortlessly.</p>
@@ -134,14 +135,12 @@ const HomePage = () => {
             <div className="logo">RoomExpense</div>
             <div className="copyright">© {currentYear} RoomExpense. All rights reserved.</div>
           </div>
-          
           <div className="footer-links">
             <FooterColumn title="Product" items={footerLinks.product} />
             <FooterColumn title="Company" items={footerLinks.company} />
             <FooterColumn title="Legal" items={footerLinks.legal} />
           </div>
         </div>
-        
         <div className="footer-bottom">
           <div className="social-links">
             {['facebook', 'twitter', 'instagram', 'linkedin'].map((platform) => (
