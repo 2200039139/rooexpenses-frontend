@@ -50,25 +50,44 @@ const RoommateExpenseTracker = () => {
   const [historyTab, setHistoryTab] = useState('expenses');
 
   // Check notification permission on component mount
-  useEffect(() => {
-    if ('Notification' in window) {
+  // Replace this in your useEffect for notification permission
+useEffect(() => {
+  if ('Notification' in window) {
+    // Check if we're in a service worker context
+    if (typeof window.Notification !== 'undefined') {
       setNotificationPermission(Notification.permission);
       
-      // Request permission if not already granted or denied
       if (Notification.permission === 'default') {
         Notification.requestPermission().then(permission => {
           setNotificationPermission(permission);
         });
       }
     }
-  }, []);
+  }
+}, []);
 
   // Show browser notification helper function
-  const showBrowserNotification = (title, options = {}) => {
-    if ('Notification' in window && notificationPermission === 'granted') {
-      new Notification(title, options);
+ const showBrowserNotification = (title, options = {}) => {
+  // Check if we're in the main window context and Notification is available
+  if (typeof window !== 'undefined' && typeof window.Notification !== 'undefined') {
+    if (notificationPermission === 'granted') {
+      try {
+        new Notification(title, options);
+      } catch (e) {
+        console.warn('Notification error:', e);
+        // Fallback to alert or other notification method
+        alert(title + ': ' + (options.body || ''));
+      }
     }
-  };
+  }
+};
+  // Wrap any notification calls in try-catch blocks
+try {
+  showNotification('Your message here');
+} catch (e) {
+  console.error('Notification failed:', e);
+  // Fallback to console or other notification method
+}
 
   // Show notification helper function (both in-app and browser)
   const showNotification = (message, type = 'success', showBrowserNotif = true) => {
