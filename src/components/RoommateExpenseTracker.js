@@ -10,6 +10,21 @@ const CURRENCY = {
   symbol: '₹',
   conversionRate: 1,
 };
+const PopupNotice = ({ onClose }) => (
+  <div className="popup-overlay">
+    <div className="popup-box">
+      <h3>Upcoming Login Update</h3>
+      <p>
+        <strong>Right now, all members share one login per room.</strong><br /><br />
+        We're working on a new system where <strong>each member will have their own individual login</strong> for better privacy, activity tracking, and personalized notifications.
+        <br /><br />
+        Stay tuned — this update is coming soon!
+      </p>
+      <button className="btn primary" onClick={onClose}>Got it!</button>
+    </div>
+  </div>
+);
+
 
 const RoommateExpenseTracker = () => {
   const [roommates, setRoommates] = useState([]);
@@ -574,6 +589,7 @@ const getMonthlyTotals = () => {
 
   return (
     <div className="app-container">
+    {showPopup && <PopupNotice onClose={() => setShowPopup(false)} />}
       {notification.show && (
         <div className={`notification notification-${notification.type}`}>
           <span className="notification-message">{notification.message}</span>
