@@ -12,7 +12,7 @@ const features = [
 ];
 
 const testimonials = [
-  { quote: "RoomExpense saved our friendship! No more arguments about who paid for what.", author: "- Sarah, Bangalore" },
+  { quote: "Splitta saved our friendship! No more arguments about who paid for what.", author: "- Sarah, Bangalore" },
   { quote: "As someone who hates math, this app is a lifesaver for splitting expenses fairly.", author: "- Rohan, Mumbai" }
 ];
 
@@ -65,7 +65,7 @@ const HomePage = () => {
 
       {/* Navigation */}
       <nav className="navbar">
-        <div className="logo">RoomExpense</div>
+        <div className="logo">Splitta</div>
         <div className="auth-buttons">
           <Link to="/login" className="btn outline">Log In</Link>
           <Link to="/signup" className="btn primary">Sign Up</Link>
@@ -89,7 +89,7 @@ const HomePage = () => {
 
       {/* Features */}
       <section className="features">
-        <h2>Why Choose RoomExpense?</h2>
+        <h2>Why Choose Splitta?</h2>
         <div className="features-grid">
           {features.map((feature, index) => (
             <FeatureCard key={index} {...feature} />
@@ -118,8 +118,8 @@ const HomePage = () => {
       <footer className="footer">
         <div className="footer-content">
           <div className="footer-brand">
-            <div className="logo">RoomExpense</div>
-            <div className="copyright">© {currentYear} RoomExpense. All rights reserved.</div>
+            <div className="logo">Splitta</div>
+            <div className="copyright">© {currentYear} Splitta. All rights reserved.</div>
           </div>
           <div className="footer-links">
             <FooterColumn title="Product" items={footerLinks.product} />
