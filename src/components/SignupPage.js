@@ -276,7 +276,7 @@ const SignupPage = () => {
 <div className="info-side">
   <div className="info-content">
     <div className="info-logo">
-      <span className="logo-highlight">Room</span>Expenses
+      <span className="logo-highlight">Spl</span>itta
     </div>
     <h3 className="headline">
       <span className="headline-decoration">///</span> The Smarter Way to Split Expenses
