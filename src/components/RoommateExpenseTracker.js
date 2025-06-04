@@ -430,7 +430,7 @@ const RoommateExpenseTracker = () => {
     setUser(null);
     setToken(null);
     showNotification('Logged out successfully', 'info');
-    window.location.href = '/login';
+    window.location.href = '/';
   };
 
   const splits = calculateSplits();
