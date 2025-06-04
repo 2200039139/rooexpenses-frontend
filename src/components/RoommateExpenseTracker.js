@@ -67,7 +67,19 @@ useEffect(() => {
 }, []);
 
   // Show browser notification helper function
-
+ const showBrowserNotification = (title, options = {}) => {
+  // Check if we're in the main window context and Notification is available
+  if (typeof window !== 'undefined' && typeof window.Notification !== 'undefined') {
+    if (notificationPermission === 'granted') {
+      try {
+        new Notification(title, options);
+      } catch (e) {
+        console.warn('Notification error:', e);
+       
+      }
+    }
+  }
+};
   // Wrap any notification calls in try-catch blocks
 try {
   showNotification('Your message here');
