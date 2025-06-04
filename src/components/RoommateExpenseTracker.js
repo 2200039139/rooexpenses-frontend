@@ -50,11 +50,8 @@ const RoommateExpenseTracker = () => {
   const [historyTab, setHistoryTab] = useState('expenses');
 
   // Check notification permission on component mount
-  // Replace this in your useEffect for notification permission
-useEffect(() => {
-  if ('Notification' in window) {
-    // Check if we're in a service worker context
-    if (typeof window.Notification !== 'undefined') {
+  useEffect(() => {
+    if ('Notification' in window) {
       setNotificationPermission(Notification.permission);
       
       if (Notification.permission === 'default') {
@@ -63,41 +60,32 @@ useEffect(() => {
         });
       }
     }
-  }
-}, []);
+  }, []);
 
   // Show browser notification helper function
- const showBrowserNotification = (title, options = {}) => {
-  // Check if we're in the main window context and Notification is available
-  if (typeof window !== 'undefined' && typeof window.Notification !== 'undefined') {
+  const showBrowserNotification = (title, options = {}) => {
     if (notificationPermission === 'granted') {
       try {
         new Notification(title, options);
       } catch (e) {
         console.warn('Notification error:', e);
-        alert(title + ': ' + (options.body || ''));
-       
       }
     }
-  }
-};
-  // Wrap any notification calls in try-catch blocks
-
-
+  };
 
   // Show notification helper function (both in-app and browser)
-  const showNotification = (message, type = 'success', showBrowserNotif = true) => {
-    // Show in-app notification
+  const showNotification = (message, type = 'success', showBrowserNotif = false) => {
+    // Only show in-app notification by default
     setNotification({ show: true, message, type });
     setTimeout(() => {
       setNotification({ show: false, message: '', type: 'success' });
     }, 3000);
 
-    // Show browser notification if enabled and permission granted
+    // Optionally show browser notification if explicitly requested
     if (showBrowserNotif && notificationPermission === 'granted') {
       showBrowserNotification('RoomExpense', {
         body: message,
-        icon: '/fvicon.jpg' // You can add your app icon here
+        icon: '/fvicon.jpg'
       });
     }
   };
@@ -303,10 +291,7 @@ useEffect(() => {
       const fromName = roommates.find(r => r.id === parseInt(currentSettlement.fromId))?.name || 'Someone';
       const toName = roommates.find(r => r.id === parseInt(currentSettlement.toId))?.name || 'Someone';
       
-      showNotification('Settlement recorded successfully!');
-      showBrowserNotification('Settlement Recorded', {
-        body: `${fromName} paid ${toName} ${formatCurrency(parseFloat(currentSettlement.amount))}`
-      });
+      showNotification(`${fromName} paid ${toName} ${formatCurrency(parseFloat(currentSettlement.amount))}`);
     } catch (err) {
       console.error('Error adding settlement:', err);
       showNotification(err.message, 'error');
@@ -344,9 +329,6 @@ useEffect(() => {
       setNewRoommate('');
       
       showNotification(`${newRoommate} added successfully!`);
-      showBrowserNotification('New Roommate Added', {
-        body: `${newRoommate} has been added to your group`
-      });
     } catch (err) {
       console.error('Error adding roommate:', err);
       showNotification(err.message, 'error');
@@ -376,9 +358,6 @@ useEffect(() => {
       
       setRoommates(roommates.filter(roommate => roommate.id !== id));
       showNotification(`${roommateToRemove.name} removed successfully`, 'info');
-      showBrowserNotification('Roommate Removed', {
-        body: `${roommateToRemove.name} has been removed from your group`
-      });
     } catch (err) {
       console.error('Error removing roommate:', err);
       showNotification(err.message, 'error');
@@ -470,13 +449,7 @@ useEffect(() => {
         splitAmong: newExpense.splitAmong
       }]);
       
-      const paidByRoommate = roommates.find(r => r.id === parseInt(newExpense.paidBy));
-      const splitCount = newExpense.splitAmong.length;
-      
       showNotification(`Expense "${newExpense.description}" added successfully!`);
-      showBrowserNotification('New Expense Added', {
-        body: `${paidByRoommate?.name || 'Someone'} paid ${formatCurrency(parseFloat(newExpense.amount))} for ${newExpense.description} (split among ${splitCount} people)`
-      });
       
       setNewExpense({
         description: '',
@@ -1115,7 +1088,7 @@ useEffect(() => {
                     ) : (
                       <div className="monthly-view">
                         {getMonthlyTotals().map(month => (
-                                                <div key={month.key} className="monthly-card">
+                          <div key={month.key} className="monthly-card">
                             <div className="month-header">
                               <h3>{month.name}</h3>
                               <span className="month-total">
@@ -1131,7 +1104,7 @@ useEffect(() => {
                                   return monthKey === month.key;
                                 })
                                 .sort((a, b) => new Date(b.date) - new Date(a.date))
-                                .map(expense => {
+                                                              .map(expense => {
                                   const paidByRoommate = roommates.find(r => r.id === parseInt(expense.paidBy));
                                   const participants = expense.splitAmong && expense.splitAmong.length > 0
                                     ? roommates.filter(r => expense.splitAmong.includes(r.id))
@@ -1141,8 +1114,7 @@ useEffect(() => {
                                     <div key={expense.id} className="month-expense-item">
                                       <div className="expense-date">
                                         {new Date(expense.date).toLocaleDateString('en-US', {
-                                          day: 'numeric',
-                                          weekday: 'short'
+                                          day: 'numeric'
                                         })}
                                       </div>
                                       <div className="expense-description">
@@ -1188,7 +1160,7 @@ useEffect(() => {
                                   <span className="from-to">
                                     {fromRoommate?.name || 'Someone'} → {toRoommate?.name || 'Someone'}
                                   </span>
-                                  <span className="settlement-amount">
+                                  <span className="amount">
                                     {formatCurrency(parseFloat(settlement.amount))}
                                   </span>
                                 </div>
@@ -1206,8 +1178,8 @@ useEffect(() => {
       </div>
       
       <footer className="app-footer">
-        <p>Room Expense Tracker - Keep your shared finances organized</p>
-        <p className="version-info">Version 1.3.0</p>
+        <p>© {new Date().getFullYear()} RoomExpense - Roommate Expense Tracker</p>
+        <p className="version">v1.3.0</p>
       </footer>
     </div>
   );
