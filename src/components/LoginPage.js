@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { FiArrowLeft,  FiCheck, FiInfo } from 'react-icons/fi';
+import './lg.css';
 
 const LoginPage = () => {
   const navigate = useNavigate();
