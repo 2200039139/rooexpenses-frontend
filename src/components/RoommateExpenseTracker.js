@@ -3,12 +3,15 @@ import './res.css';
 
 const API_URL = 'https://ample-ambition-production.up.railway.app/api';
 
+
 // Currency configuration
 const CURRENCY = {
   code: 'INR',
   symbol: '₹',
   conversionRate: 1,
 };
+
+
 
 const RoommateExpenseTracker = () => {
   const [showPopup, setShowPopup] = useState(true);
@@ -24,19 +27,16 @@ const RoommateExpenseTracker = () => {
   });
   const [activeTab, setActiveTab] = useState('roommates');
   const [isLoading, setIsLoading] = useState(true);
-  const [setError] = useState(null);
-  
-  const handleClosePopup = () => {
+  const [ setError] = useState(null);
+   const handleClosePopup = () => {
     setShowPopup(false);
   };
-  
   // Authentication state
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || null);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   
   // Notification state
   const [notification, setNotification] = useState({ show: false, message: '', type: 'success' });
-  const [notificationPermission, setNotificationPermission] = useState('default');
 
   // Settlement state
   const [settlements, setSettlements] = useState([]);
@@ -48,62 +48,27 @@ const RoommateExpenseTracker = () => {
     date: new Date().toISOString().split('T')[0]
   });
   const [historyTab, setHistoryTab] = useState('expenses');
-
-  // Check notification permission on component mount
-  useEffect(() => {
-    if ('Notification' in window) {
-      setNotificationPermission(Notification.permission);
-      
-      if (Notification.permission === 'default') {
-        Notification.requestPermission().then(permission => {
-          setNotificationPermission(permission);
-        });
-      }
-    }
-  }, []);
-
-  // Show browser notification helper function
-  const showBrowserNotification = (title, options = {}) => {
-    if (notificationPermission === 'granted') {
-      try {
-        new Notification(title, options);
-      } catch (e) {
-        console.warn('Notification error:', e);
-      }
-    }
-  };
-
-  // Show notification helper function (both in-app and browser)
-  const showNotification = (message, type = 'success', showBrowserNotif = false) => {
-    // Only show in-app notification by default
+  const PopupNotice = ({ onClose }) => (
+  <div className="popup-overlay">
+    <div className="popup-box">
+      <h3>Important Update About Logins</h3>
+      <p>
+        Currently, all roommates in a group share a single login.<br /><br />
+        We're actively working on a major update that will allow <strong>each roommate to have their own personal login</strong>. This means better security, personalized notifications, and a smoother experience for everyone.
+        <br /><br />
+        Thanks for being part of RoomExpense — we’re excited to bring you this upgrade soon!
+      </p>
+      <button className="btn primary" onClick={onClose}>Got it!</button>
+    </div>
+  </div>
+);
+  // Show notification helper function
+  const showNotification = (message, type = 'success') => {
     setNotification({ show: true, message, type });
     setTimeout(() => {
       setNotification({ show: false, message: '', type: 'success' });
     }, 3000);
-
-    // Optionally show browser notification if explicitly requested
-    if (showBrowserNotif && notificationPermission === 'granted') {
-      showBrowserNotification('RoomExpense', {
-        body: message,
-        icon: '/fvicon.jpg'
-      });
-    }
   };
-
-  const PopupNotice = ({ onClose }) => (
-    <div className="popup-overlay">
-      <div className="popup-box">
-        <h3>Important Update About Logins</h3>
-        <p>
-          Currently, all roommates in a group share a single login.<br /><br />
-          We're actively working on a major update that will allow <strong>each roommate to have their own personal login</strong>. This means better security, personalized notifications, and a smoother experience for everyone.
-          <br /><br />
-          Thanks for being part of RoomExpense — we're excited to bring you this upgrade soon!
-        </p>
-        <button className="btn primary" onClick={onClose}>Got it!</button>
-      </div>
-    </div>
-  );
 
   // Check if user is authenticated
   useEffect(() => {
@@ -160,6 +125,7 @@ const RoommateExpenseTracker = () => {
           setExpenses(formattedExpenses || []);
         }
         
+
         // Fetch settlements
         const settlementsResponse = await fetch(`${API_URL}/settlements`, { headers });
         if (!settlementsResponse.ok) {
@@ -178,7 +144,7 @@ const RoommateExpenseTracker = () => {
             err.message !== 'Failed to fetch expenses' &&
             err.message !== 'Failed to fetch settlements') {
           setError(err.message);
-          showNotification(err.message, 'error');
+          showNotification(err .message, 'error');
         }
       } finally {
         setIsLoading(false);
@@ -186,7 +152,7 @@ const RoommateExpenseTracker = () => {
     };
     
     fetchData();
-  }, [user, token]);
+     }, [user, token]);
 
   // Calculate splits based on expenses and settlements
   const calculateSplits = () => {
@@ -287,17 +253,14 @@ const RoommateExpenseTracker = () => {
       const data = await response.json();
       setSettlements([...settlements, data]);
       setShowSettleModal(false);
-      
-      const fromName = roommates.find(r => r.id === parseInt(currentSettlement.fromId))?.name || 'Someone';
-      const toName = roommates.find(r => r.id === parseInt(currentSettlement.toId))?.name || 'Someone';
-      
-      showNotification(`${fromName} paid ${toName} ${formatCurrency(parseFloat(currentSettlement.amount))}`);
+      showNotification('Settlement recorded successfully!');
     } catch (err) {
       console.error('Error adding settlement:', err);
       showNotification(err.message, 'error');
     }
   };
 
+  // Your existing handlers (unchanged)
   const handleAddRoommate = async () => {
     if (newRoommate.trim() === '') {
       showNotification('Please enter a roommate name', 'error');
@@ -327,7 +290,6 @@ const RoommateExpenseTracker = () => {
       const data = await response.json();
       setRoommates([...roommates, data]);
       setNewRoommate('');
-      
       showNotification(`${newRoommate} added successfully!`);
     } catch (err) {
       console.error('Error adding roommate:', err);
@@ -476,7 +438,7 @@ const RoommateExpenseTracker = () => {
           splitAmong: roommates.map(r => r.id)
         });
       }
-      showNotification(`Switched to ${tab.charAt(0).toUpperCase() + tab.slice(1)} tab`, 'info', false);
+      showNotification(`Switched to ${tab.charAt(0).toUpperCase() + tab.slice(1)} tab`, 'info');
     }
   };
 
@@ -551,35 +513,10 @@ const RoommateExpenseTracker = () => {
     
     return suggestions.length > 0 ? suggestions : null;
   };
+  
+
 
   const paymentSuggestions = generatePaymentSuggestions();
-
-  // Function to group expenses by month and calculate totals
-  const getMonthlyTotals = () => {
-    if (!expenses || expenses.length === 0) return [];
-    
-    const monthlyData = {};
-    
-    expenses.forEach(expense => {
-      const date = new Date(expense.date);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      const monthName = date.toLocaleString('default', { month: 'long', year: 'numeric' });
-      
-      if (!monthlyData[monthKey]) {
-        monthlyData[monthKey] = {
-          key: monthKey,
-          name: monthName,
-          total: 0
-        };
-      }
-      
-      monthlyData[monthKey].total += parseFloat(expense.amount);
-    });
-    
-    // Convert to array and sort by date (most recent first)
-    return Object.values(monthlyData)
-      .sort((a, b) => b.key.localeCompare(a.key));
-  };
 
   if (isLoading) {
     return (
@@ -588,11 +525,78 @@ const RoommateExpenseTracker = () => {
       </div>
     );
   }
+  // Add this inside your RoommateExpenseTracker component, before the return statement
+
+// Function to group expenses by month and calculate totals
+const calculateMonthlyExpenses = () => {
+  if (!expenses || expenses.length === 0) return [];
+  
+  const monthlyData = {};
+  
+  expenses.forEach(expense => {
+    // Create date object from expense date
+    const expenseDate = new Date(expense.date);
+    // Format key as YYYY-MM
+    const monthKey = `${expenseDate.getFullYear()}-${String(expenseDate.getMonth() + 1).padStart(2, '0')}`;
+    // Format display name
+    const displayName = expenseDate.toLocaleString('default', { month: 'long', year: 'numeric' });
+    
+    if (!monthlyData[monthKey]) {
+      monthlyData[monthKey] = {
+        month: displayName,
+        total: 0,
+        count: 0
+      };
+    }
+    
+    monthlyData[monthKey].total += parseFloat(expense.amount);
+    monthlyData[monthKey].count += 1;
+  });
+  
+  // Convert to array and sort by date (most recent first)
+  return Object.entries(monthlyData)
+    .map(([key, data]) => ({
+      key,
+      ...data
+    }))
+    .sort((a, b) => b.key.localeCompare(a.key));
+};
+
+// Function to calculate monthly expense totals
+const getMonthlyTotals = () => {
+  if (!expenses || expenses.length === 0) return [];
+  
+  const monthlyData = {};
+  
+  expenses.forEach(expense => {
+    const date = new Date(expense.date);
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    const monthName = date.toLocaleString('default', { month: 'long', year: 'numeric' });
+    
+    if (!monthlyData[monthKey]) {
+      monthlyData[monthKey] = {
+        key: monthKey,
+        name: monthName,
+        total: 0
+      };
+    }
+    
+    monthlyData[monthKey].total += parseFloat(expense.amount);
+  });
+  
+  // Convert to array and sort by date (most recent first)
+  return Object.values(monthlyData)
+    .sort((a, b) => b.key.localeCompare(a.key));
+};
+// Then, modify your history section in the JSX:
+
+
 
   return (
     <div className="app-container">
-      {showPopup && <PopupNotice onClose={handleClosePopup} />}
-      
+    {showPopup && <PopupNotice onClose={handleClosePopup} />}
+    
+   
       {notification.show && (
         <div className={`notification notification-${notification.type}`}>
           <span className="notification-message">{notification.message}</span>
@@ -974,213 +978,174 @@ const RoommateExpenseTracker = () => {
           )}
           
           {/* History Section */}
-          {activeTab === 'history' && (
-            <div className="section-container">
-              <h2>History</h2>
-              
-              {roommates.length === 0 ? (
-                <div className="empty-state">
-                  <p>You need to add roommates before tracking expenses.</p>
-                  <button 
-                    className="redirect-button"
-                    onClick={() => setActiveTab('roommates')}
-                  >
-                    Go to Roommates
-                  </button>
-                </div>
-              ) : (
-                <>
-                  <div className="history-tabs">
-                    <button 
-                      className={`sub-tab ${historyTab === 'expenses' ? 'active' : ''}`}
-                      onClick={() => setHistoryTab('expenses')}
-                    >
-                      Expenses
-                    </button>
-                    <button 
-                      className={`sub-tab ${historyTab === 'monthly' ? 'active' : ''}`}
-                      onClick={() => setHistoryTab('monthly')}
-                    >
-                      Monthly
-                    </button>
-                    <button 
-                      className={`sub-tab ${historyTab === 'settlements' ? 'active' : ''}`}
-                      onClick={() => setHistoryTab('settlements')}
-                    >
-                      Settlements
-                    </button>
-                  </div>
-                  
-                  {historyTab === 'expenses' ? (
-                    expenses.length === 0 ? (
-                      <div className="empty-state">
-                        <p>No expenses added yet. Add your first expense in the "Add Expense" tab.</p>
-                        <button 
-                          className="redirect-button"
-                          onClick={() => setActiveTab('expenses')}
-                        >
-                          Add Expenses
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="expenses-list">
-                        {expenses
-                          .sort((a, b) => new Date(b.date) - new Date(a.date))
-                          .map((expense) => {
-                            const originalDate = new Date(expense.date);
-                            const adjustedDate = new Date(originalDate);
-                            adjustedDate.setDate(adjustedDate.getDate() + 1);
-
-                            const paidByRoommate = roommates.find((r) => r.id === parseInt(expense.paidBy));
-                            const participants =
-                              expense.splitAmong && expense.splitAmong.length > 0
-                                ? roommates.filter((r) => expense.splitAmong.includes(r.id))
-                                : roommates;
-                            const participantNames = participants.map((r) => r.name).join(", ");
-
-                            return (
-                              <div key={expense.id} className="expense-card">
-                                <div className="expense-date">
-                                  {adjustedDate.toLocaleDateString("en-US", {
-                                    year: "numeric",
-                                    month: "short",
-                                    day: "numeric",
-                                  })}
-                                </div>
-
-                                <div className="expense-details">
-                                  <div className="expense-description">{expense.description}</div>
-
-                                  <div className="expense-payment">
-                                    <span className="paid-by">
-                                      Paid by {paidByRoommate ? paidByRoommate.name : "Unknown"}
-                                    </span>
-                                    <span className="amount">
-                                      {formatCurrency(parseFloat(expense.amount))}
-                                    </span>
-                                  </div>
-
-                                  <div className="expense-split">
-                                    Split among: {participantNames}
-                                  </div>
-                                  <div className="expense-split">
-                                    Split amount:{" "}
-                                    {formatCurrency(parseFloat(expense.amount) / participants.length)}{" "}
-                                    per person
-                                  </div>
-                                </div>
-                              </div>
-                            );
-                          })}
-                      </div>
-                    )
-                  ) : historyTab === 'monthly' ? (
-                    expenses.length === 0 ? (
-                      <div className="empty-state">
-                        <p>No expenses added yet. Add your first expense to see monthly totals.</p>
-                        <button 
-                          className="redirect-button"
-                          onClick={() => setActiveTab('expenses')}
-                        >
-                          Add Expenses
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="monthly-view">
-                        {getMonthlyTotals().map(month => (
-                          <div key={month.key} className="monthly-card">
-                            <div className="month-header">
-                              <h3>{month.name}</h3>
-                              <span className="month-total">
-                                {formatCurrency(month.total)}
-                              </span>
-                            </div>
-                            
-                            <div className="month-expenses">
-                              {expenses
-                                .filter(expense => {
-                                  const date = new Date(expense.date);
-                                  const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-                                  return monthKey === month.key;
-                                })
-                                .sort((a, b) => new Date(b.date) - new Date(a.date))
-                                                              .map(expense => {
-                                  const paidByRoommate = roommates.find(r => r.id === parseInt(expense.paidBy));
-                                  const participants = expense.splitAmong && expense.splitAmong.length > 0
-                                    ? roommates.filter(r => expense.splitAmong.includes(r.id))
-                                    : roommates;
-                                  
-                                  return (
-                                    <div key={expense.id} className="month-expense-item">
-                                      <div className="expense-date">
-                                        {new Date(expense.date).toLocaleDateString('en-US', {
-                                          day: 'numeric'
-                                        })}
-                                      </div>
-                                      <div className="expense-description">
-                                        {expense.description}
-                                      </div>
-                                      <div className="expense-paid-by">
-                                        {paidByRoommate?.name || 'Unknown'}
-                                      </div>
-                                      <div className="expense-amount">
-                                        {formatCurrency(parseFloat(expense.amount))}
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )
-                  ) : historyTab === 'settlements' ? (
-                    settlements.length === 0 ? (
-                      <div className="empty-state">
-                        <p>No settlements recorded yet.</p>
-                      </div>
-                    ) : (
-                      <div className="settlements-list">
-                        {settlements
-                          .sort((a, b) => new Date(b.date) - new Date(a.date))
-                          .map(settlement => {
-                            const fromRoommate = roommates.find(r => r.id === parseInt(settlement.fromId));
-                            const toRoommate = roommates.find(r => r.id === parseInt(settlement.toId));
-                            
-                            return (
-                              <div key={settlement.id} className="settlement-card">
-                                <div className="settlement-date">
-                                  {new Date(settlement.date).toLocaleDateString('en-US', {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric'
-                                  })}
-                                </div>
-                                <div className="settlement-details">
-                                  <span className="from-to">
-                                    {fromRoommate?.name || 'Someone'} → {toRoommate?.name || 'Someone'}
-                                  </span>
-                                  <span className="amount">
-                                    {formatCurrency(parseFloat(settlement.amount))}
-                                  </span>
-                                </div>
-                              </div>
-                            );
-                          })}
-                      </div>
-                    )
-                  ) : null}
-                </>
-              )}
+{activeTab === 'history' && (
+  <div className="section-container">
+    <h2>History</h2>
+    
+    {roommates.length === 0 ? (
+      <div className="empty-state">
+        <p>You need to add roommates before tracking expenses.</p>
+        <button 
+          className="redirect-button"
+          onClick={() => setActiveTab('roommates')}
+        >
+          Go to Roommates
+        </button>
+      </div>
+    ) : (
+      <>
+        <div className="history-tabs">
+          <button 
+            className={`sub-tab ${historyTab === 'expenses' ? 'active' : ''}`}
+            onClick={() => setHistoryTab('expenses')}
+          >
+            Expenses
+          </button>
+          <button 
+            className={`sub-tab ${historyTab === 'monthly' ? 'active' : ''}`}
+            onClick={() => setHistoryTab('monthly')}
+          >
+            Monthly
+          </button>
+          <button 
+            className={`sub-tab ${historyTab === 'settlements' ? 'active' : ''}`}
+            onClick={() => setHistoryTab('settlements')}
+          >
+            Settlements
+          </button>
+        </div>
+        
+        {historyTab === 'expenses' ? (
+          expenses.length === 0 ? (
+            <div className="empty-state">
+              <p>No expenses added yet. Add your first expense in the "Add Expense" tab.</p>
+              <button 
+                className="redirect-button"
+                onClick={() => setActiveTab('expenses')}
+              >
+                Add Expenses
+              </button>
             </div>
-          )}
+          ) : (
+            <div className="expenses-list">
+              {expenses
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .map((expense) => {
+                  // Parse the original date
+                  const originalDate = new Date(expense.date);
+                  
+                  // Add 1 day (24 hours) to fix timezone offset issues
+                  const adjustedDate = new Date(originalDate);
+                  adjustedDate.setDate(adjustedDate.getDate() + 1);
+
+                  const paidByRoommate = roommates.find((r) => r.id === parseInt(expense.paidBy));
+                  const participants =
+                    expense.splitAmong && expense.splitAmong.length > 0
+                      ? roommates.filter((r) => expense.splitAmong.includes(r.id))
+                      : roommates;
+                  const participantNames = participants.map((r) => r.name).join(", ");
+
+                  return (
+                    <div key={expense.id} className="expense-card">
+                      <div className="expense-date">
+                        {adjustedDate.toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </div>
+
+                      <div className="expense-details">
+                        <div className="expense-description">{expense.description}</div>
+
+                        <div className="expense-payment">
+                          <span className="paid-by">
+                            Paid by {paidByRoommate ? paidByRoommate.name : "Unknown"}
+                          </span>
+                          <span className="amount">
+                            {formatCurrency(parseFloat(expense.amount))}
+                          </span>
+                        </div>
+
+                        <div className="expense-split">
+                          Split among: {participantNames}
+                        </div>
+                        <div className="expense-split">
+                          Split amount:{" "}
+                          {formatCurrency(parseFloat(expense.amount) / participants.length)}{" "}
+                          per person
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )
+        ) : historyTab === 'monthly' ? (
+          expenses.length === 0 ? (
+            <div className="empty-state">
+              <p>No expenses added yet. Add your first expense to see monthly totals.</p>
+              <button 
+                className="redirect-button"
+                onClick={() => setActiveTab('expenses')}
+              >
+                Add Expenses
+              </button>
+            </div>
+          ) : (
+            <div className="monthly-view">
+              {getMonthlyTotals().map(month => (
+                <div key={month.key} className="month-card">
+                  <h3 className="month-name">{month.name}</h3>
+                  <div className="month-amount">{formatCurrency(month.total)}</div>
+                </div>
+              ))}
+            </div>
+          )
+        ) : (
+          settlements.length === 0 ? (
+            <div className="empty-state">
+              <p>No settlements recorded yet.</p>
+            </div>
+          ) : (
+            <div className="settlements-list">
+              {settlements
+                .sort((a, b) => new Date(b.date) - new Date(a.date))
+                .map(settlement => {
+                  const fromRoommate = roommates.find(r => r.id === parseInt(settlement.fromId));
+                  const toRoommate = roommates.find(r => r.id === parseInt(settlement.toId));
+                  
+                  return (
+                    <div key={settlement.id} className="settlement-card">
+                      <div className="settlement-date">
+                        {new Date(settlement.date).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric'
+                        })}
+                      </div>
+                      
+                      <div className="settlement-details">
+                        <div className="settlement-description">
+                          {fromRoommate?.name || 'Unknown'} paid {toRoommate?.name || 'Unknown'}
+                        </div>
+                        
+                        <div className="settlement-amount">
+                          {formatCurrency(parseFloat(settlement.amount))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+            </div>
+          )
+        )}
+      </>
+    )}
+  </div>
+)}
         </div>
       </div>
-      
-      <footer className="app-footer">
-        <p>© {new Date().getFullYear()} RoomExpense - Roommate Expense Tracker</p>
-        <p className="version">v1.3.0</p>
-      </footer>
     </div>
   );
 };
