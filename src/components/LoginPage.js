@@ -1,7 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import './Lg.css'; // Import the CSS file
+import { useNavigate, Link } from 'react-router-dom';
+import { FiArrowLeft,  FiCheck, FiInfo } from 'react-icons/fi';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -11,21 +10,20 @@ const LoginPage = () => {
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   // Initialize Google Sign-In API
   useEffect(() => {
-    // Add Google's script to the document
     const script = document.createElement('script');
     script.src = 'https://accounts.google.com/gsi/client';
     script.async = true;
     script.defer = true;
     document.body.appendChild(script);
 
-    // Initialize Google Sign-In once the script is loaded
     script.onload = () => {
       if (window.google) {
         window.google.accounts.id.initialize({
-          client_id: '37085501976-b54lfva9uchil1jq6boc6vt4jb1bqb5d.apps.googleusercontent.com', // Using your client ID from the backend
+          client_id: '37085501976-b54lfva9uchil1jq6boc6vt4jb1bqb5d.apps.googleusercontent.com',
           callback: handleGoogleResponse
         });
         window.google.accounts.id.renderButton(
@@ -36,26 +34,24 @@ const LoginPage = () => {
     };
 
     return () => {
-      // Clean up script on component unmount
       if (document.body.contains(script)) {
         document.body.removeChild(script);
       }
     };
-  }, []);
+  }, );
 
   const handleGoogleResponse = async (response) => {
     setIsLoading(true);
-    setError('');
+    setError('hi');
     
     try {
-      // Send the ID token to your backend using the correct endpoint
-      const backendResponse = await fetch('https://ample-ambition-production.up.railway.app/api/users/google-auth', {
+      const backendResponse = await fetch('http://localhost:3000/api/users/google-auth', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          token: response.credential // Using the correct parameter name as expected by your backend
+          token: response.credential
         }),
       });
       
@@ -65,17 +61,11 @@ const LoginPage = () => {
         throw new Error(data.error || 'Google login failed');
       }
       
-      // Store user data and token in localStorage
       localStorage.setItem('user', JSON.stringify(data.user));
       localStorage.setItem('token', data.token);
-      
-      console.log('Google login successful');
-      
-      // Redirect to dashboard
       navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Failed to login with Google');
-      console.error('Google login error:', err);
     } finally {
       setIsLoading(false);
     }
@@ -94,7 +84,6 @@ const LoginPage = () => {
     setError('');
     setIsLoading(true);
     
-    // Validate form
     if (!formData.email || !formData.password) {
       setError('Please fill in all fields');
       setIsLoading(false);
@@ -102,15 +91,15 @@ const LoginPage = () => {
     }
     
     try {
-      // Send login data to backend
-      const response = await fetch('https://ample-ambition-production.up.railway.app/api/users/login', {
+      const response = await fetch('http://localhost:3000/api/users/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           email: formData.email,
-          password: formData.password
+          password: formData.password,
+          rememberMe
         }),
       });
       
@@ -120,106 +109,143 @@ const LoginPage = () => {
         throw new Error(data.error || 'Login failed');
       }
       
-      // Store user data and token in localStorage
       localStorage.setItem('user', JSON.stringify(data.user));
       localStorage.setItem('token', data.token);
-      
-      console.log('Login successful');
-      
-      // Redirect to dashboard
       navigate('/dashboard');
     } catch (err) {
       setError(err.message || 'Invalid email or password');
-      console.error('Login error:', err);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="login-container">
-      <div className="login-card">
-        <div className="login-header">
-          <h1>Roommate Expense Tracker</h1>
-          <p>Login to manage your shared expenses</p>
-        </div>
-        
-        {error && (
-          <div className="error-message">
-            <span>{error}</span>
-          </div>
-        )}
-        
-        <div className="login-options">
-          {/* Google Sign-In Button */}
-          <div id="google-login-button" className="google-login-button"></div>
+    <div className="split-container">
+      {/* Left side - Login form */}
+      <div className="login-side">
+        <div className="login-card">
+          <button className="back-button" onClick={() => navigate('/')}>
+            <FiArrowLeft size={18} />
+          </button>
+
           
-          <div className="separator">
-            <span>or login with email</span>
+          <div className="login-header">
+            <h2>Login to Room Expenses</h2>
+            <p className="subtitle">Track and split shared expenses with ease</p>
           </div>
-        </div>
-        
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <div className="input-wrapper">
-              <input
-                type="email"
-                id="email"
-                name="email"
-                value={formData.email}
-                onChange={handleChange}
-                placeholder="Enter your email"
-                required
-              />
-              <i className="email-icon"></i>
+          
+          {error && (
+            <div className="error-message">
+              <FiInfo className="error-icon" />
+              <span>{error}</span>
             </div>
-          </div>
+          )}
           
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <div className="input-wrapper">
-              <input
-                type="password"
-                id="password"
-                name="password"
-                value={formData.password}
-                onChange={handleChange}
-                placeholder="Enter your password"
-                required
-              />
-              <i className="password-icon"></i>
-            </div>
-          </div>
-          
-          <div className="form-options">
-            <div className="remember-me">
-              <input
-                type="checkbox"
-                id="remember"
-              />
-              <label htmlFor="remember">Remember me</label>
+          <form onSubmit={handleSubmit} className="login-form">
+            <div className="form-group">
+              <label htmlFor="email">Email</label>
+              <div className="input-with-icon">
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="your@email.com"
+                  required
+                />
+              </div>
             </div>
             
-            <a href="/forgot-password" className="forgot-password">
-              Forgot password?
-            </a>
+            <div className="form-group">
+              <label htmlFor="password">Password</label>
+              <div className="input-with-icon">
+                <input
+                  type="password"
+                  id="password"
+                  name="password"
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+            </div>
+            
+            <div className="form-options">
+              <div className="remember-me">
+                <input
+                  type="checkbox"
+                  id="remember"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                />
+                <label htmlFor="remember">Remember me</label>
+              </div>
+              
+              <Link to="/forgot-password" className="forgot-password">
+                Forgot password?
+              </Link>
+            </div>
+            
+            <button
+              type="submit"
+              className={`login-button ${isLoading ? 'loading' : ''}`}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <>
+                  <span className="spinner"></span>
+                  <span>Logging in...</span>
+                </>
+              ) : 'Next'}
+            </button>
+          </form>
+          
+          <div className="separator">
+            <span className="separator-line"></span>
+            <span className="separator-text">or</span>
+            <span className="separator-line"></span>
           </div>
           
-          <button
-            type="submit"
-            className={`login-button ${isLoading ? 'loading' : ''}`}
-            disabled={isLoading}
-          >
-            {isLoading ? 'Logging in...' : 'Login'}
-          </button>
-        </form>
-        
-        <div className="signup-prompt">
-          <p>
-            Don't have an account?{' '}
-            <a href="/signup">Sign up</a>
-          </p>
+          <div id="google-login-button" className="google-login-button"></div>
+          
+          <div className="signup-prompt">
+            <p>Don't have an account? <Link to="/signup" className="signup-link">Sign up</Link></p>
+          </div>
+        </div>
+      </div>
+      
+      {/* Right side - Informational content */}
+      <div className="info-side">
+        <div className="info-content">
+          <div className="info-logo">Room Expenses</div>
+          <h3>Did you know?</h3>
+          <p className="statistic">SplitEase helps thousands of roommates manage over $1M in shared expenses every month.</p>
+          
+          <div className="testimonial">
+            <p className="quote">"This app saved us countless hours of calculating who owes what. Now we just log expenses and it does all the math for us!"</p>
+            <p className="author">- Sarah & Roommates, New York</p>
+          </div>
+          
+          <div className="features">
+            <div className="feature-item">
+              <FiCheck className="feature-icon" />
+              <span>Track all shared expenses in one place</span>
+            </div>
+            <div className="feature-item">
+              <FiCheck className="feature-icon" />
+              <span>Automatically calculate who owes what</span>
+            </div>
+            <div className="feature-item">
+              <FiCheck className="feature-icon" />
+              <span>Get payment reminders and notifications</span>
+            </div>
+          </div>
+          
+          <div className="thank-you">
+            <p>Thank you for being our valued user!</p>
+          </div>
         </div>
       </div>
     </div>
