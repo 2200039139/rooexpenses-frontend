@@ -90,12 +90,7 @@ try {
 }
 
   // Show notification helper function (both in-app and browser)
-  const showNotification = (message, type = 'success', showBrowserNotif = true) => {
-    // Show in-app notification
-    setNotification({ show: true, message, type });
-    setTimeout(() => {
-      setNotification({ show: false, message: '', type: 'success' });
-    }, 3000);
+  
 
     // Show browser notification if enabled and permission granted
     if (showBrowserNotif && notificationPermission === 'granted') {
