@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import './Invitations.css';
-
+import hpImage from './Flux_Dev_a_25yearold_woman_with_curly_brown_hair_and_warm_beig_1.jpg';
 // Data for reusable components
 const features = [
   {
@@ -96,7 +96,7 @@ const HomePage = () => {
           </div>
         </div>
         <div className="hero-image">
-
+<img src={hpImage} alt="Expense tracking illustration" loading="lazy" />
         </div>
       </section>
 
