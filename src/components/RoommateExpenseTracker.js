@@ -82,13 +82,8 @@ useEffect(() => {
   }
 };
   // Wrap any notification calls in try-catch blocks
-try {
-  showNotification('Your message here');
-} catch (e) {
-  console.error('Notification failed:', e);
-  // Fallback to console or other notification method
-  
-}
+
+
 
   // Show notification helper function (both in-app and browser)
   const showNotification = (message, type = 'success', showBrowserNotif = true) => {
