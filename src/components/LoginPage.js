@@ -130,7 +130,7 @@ const LoginPage = () => {
 
           
           <div className="login-header">
-            <h2>Login to Room Expenses</h2>
+            <h2>Login to Splitta</h2>
             <p className="subtitle">Track and split shared expenses with ease</p>
           </div>
           
@@ -219,13 +219,13 @@ const LoginPage = () => {
       {/* Right side - Informational content */}
       <div className="info-side">
         <div className="info-content">
-          <div className="info-logo">Room Expenses</div>
+          <div className="info-logo">Splitta</div>
           <h3>Did you know?</h3>
-          <p className="statistic">SplitEase helps thousands of roommates manage over $1M in shared expenses every month.</p>
+          <p className="statistic">Splitta helps thousands of roommates manage over $1M in shared expenses every month.</p>
           
           <div className="testimonial">
             <p className="quote">"This app saved us countless hours of calculating who owes what. Now we just log expenses and it does all the math for us!"</p>
-            <p className="author">- Sarah & Roommates, New York</p>
+            <p className="author">- Sarah & Roommates, Vijayawada</p>
           </div>
           
           <div className="features">
