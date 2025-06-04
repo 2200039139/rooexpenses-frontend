@@ -44,7 +44,7 @@ const LoginPage = () => {
     setError('hi');
     
     try {
-      const backendResponse = await fetch('http://localhost:3000/api/users/google-auth', {
+      const backendResponse = await fetch('https://ample-ambition-production.up.railway.app/api/users/google-auth', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -90,7 +90,7 @@ const LoginPage = () => {
     }
     
     try {
-      const response = await fetch('http://localhost:3000/api/users/login', {
+      const response = await fetch('https://ample-ambition-production.up.railway.app/api/users/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
