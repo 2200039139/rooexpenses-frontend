@@ -56,7 +56,7 @@ const RoommateExpenseTracker = () => {
         Currently, all roommates in a group share a single login.<br /><br />
         We're actively working on a major update that will allow <strong>each roommate to have their own personal login</strong>. This means better security, personalized notifications, and a smoother experience for everyone.
         <br /><br />
-        Thanks for being part of RoomExpense — we’re excited to bring you this upgrade soon!
+        Thanks for being part of Splitta — we’re excited to bring you this upgrade soon!
       </p>
       <button className="btn primary" onClick={onClose}>Got it!</button>
     </div>
@@ -683,7 +683,7 @@ const getMonthlyTotals = () => {
           <div className="particle"></div>
           <div className="particle"></div>
           <div className="particle"></div>
-          <h1>Room Expense Tracker (₹)</h1>
+          <h1> Splitta (₹)</h1>
           <p>Track expenses, split bills, and keep roommate finances clear</p>
           
           {user && (
