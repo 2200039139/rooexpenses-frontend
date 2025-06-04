@@ -19,7 +19,7 @@ body {
 .split-container {
   display: flex;
   width: 100%;
-  max-width: 1300px;
+  max-width: 100%;
   min-height: 900px;
   background: white;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
