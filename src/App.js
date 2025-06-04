@@ -3,8 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
 import Dashboard from './components/RoommateExpenseTracker';
-import RoommateAccessManager from './components/RoommateAccessManager';
-import Invitations from './components/Invitations';
+import HomePage from './components/Homepage';
 
 // Updated PrivateRoute for React Router v6
 const PrivateRoute = ({ element: Element }) => {
@@ -18,22 +17,20 @@ function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/signup" element={<SignupPage />} />
+        <Route path="/Homepage" element={<HomePage />}/>
         
         {/* Public route */}
-        <Route path="/RoommateAccessManager" element={<RoommateAccessManager />} />
+   
         
         {/* Protected routes */}
         <Route 
           path="/dashboard" 
           element={<PrivateRoute element={Dashboard} />} 
         />
-        <Route 
-          path="/invitations" 
-          element={<PrivateRoute element={Invitations} />} 
-        />
+      
         
         {/* Default redirect */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/" element={<Navigate to="/homepage" replace />} />
       </Routes>
     </BrowserRouter>
   );
