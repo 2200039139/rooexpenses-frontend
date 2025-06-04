@@ -43,7 +43,6 @@ const LoginPage = () => {
 
   const handleGoogleResponse = async (response) => {
     setIsLoading(true);
-    setError('hi');
     
     try {
       const backendResponse = await fetch('https://ample-ambition-production.up.railway.app/api/users/google-auth', {
