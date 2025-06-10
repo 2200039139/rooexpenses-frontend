@@ -32,6 +32,8 @@ const RoommateExpenseTracker = () => {
   
   // Authentication state
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || null);
+
+  
   const [token, setToken] = useState(localStorage.getItem('token')) || null);
   
   // Notification state
