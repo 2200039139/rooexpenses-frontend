@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './res.css';
 
-const API_URL = 'https://ample-ambition-production.up.railway.app/api';
+const API_URL = 'https://ample-ambition-production.up.railway.app';
 
 // Currency configuration
 const CURRENCY = {
