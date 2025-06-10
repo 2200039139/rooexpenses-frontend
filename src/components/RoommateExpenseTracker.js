@@ -80,15 +80,16 @@ const RoommateExpenseTracker = () => {
 
   // Fetch data when component mounts
   useEffect(() => {
-    const fetchData = async () => {
+ const fetchData = async () => {
   if (!token) {
-    showNotification('No authentication token found', 'error');
+    showNotification('Authentication required. Please login.', 'error');
+    handleLogout();
     return;
   }
 
   setIsLoading(true);
-  setError(null); // Reset error state
-  
+  setError(null);
+
   try {
     const headers = {
       'Content-Type': 'application/json',
@@ -97,78 +98,84 @@ const RoommateExpenseTracker = () => {
 
     const fetchOptions = {
       headers,
-      credentials: 'include', // Required for CORS with credentials
-      mode: 'cors' // Explicitly set CORS mode
+      credentials: 'include',
+      mode: 'cors'
     };
 
-    // Parallel fetching for better performance
-    const [roommatesResponse, expensesResponse, settlementsResponse] = await Promise.all([
-      fetch(`${API_URL}/roommates`, fetchOptions),
-      fetch(`${API_URL}/expenses`, fetchOptions),
-      fetch(`${API_URL}/settlements`, fetchOptions)
-    ]);
+    // Sequential fetching with error handling for each request
+    let roommatesData = [];
+    let expensesData = [];
+    let settlementsData = [];
 
-    // Handle roommates response
-    if (!roommatesResponse.ok) {
-      if (roommatesResponse.status === 401 || roommatesResponse.status === 403) {
-        handleLogout();
-        throw new Error('Session expired. Please login again');
+    try {
+      const roommatesResponse = await fetch(`${API_URL}/roommates`, fetchOptions);
+      if (!roommatesResponse.ok) {
+        if (roommatesResponse.status === 401 || roommatesResponse.status === 403) {
+          throw new Error('Session expired');
+        }
+        throw new Error(`Roommates request failed with status ${roommatesResponse.status}`);
       }
-      throw new Error(roommatesResponse.status === 404 
-        ? 'No roommates found' 
-        : 'Failed to fetch roommates');
+      roommatesData = await roommatesResponse.json();
+    } catch (roommatesError) {
+      console.error('Roommates fetch error:', roommatesError);
+      if (roommatesError.message === 'Session expired') {
+        handleLogout();
+        throw roommatesError;
+      }
+      showNotification('Could not load roommates', 'error');
     }
 
-    // Handle expenses response
-    if (!expensesResponse.ok) {
-      throw new Error(expensesResponse.status === 404 
-        ? 'No expenses found' 
-        : 'Failed to fetch expenses');
+    try {
+      const expensesResponse = await fetch(`${API_URL}/expenses`, fetchOptions);
+      if (!expensesResponse.ok) {
+        throw new Error(`Expenses request failed with status ${expensesResponse.status}`);
+      }
+      expensesData = await expensesResponse.json();
+    } catch (expensesError) {
+      console.error('Expenses fetch error:', expensesError);
+      showNotification('Could not load expenses', 'error');
     }
 
-    // Handle settlements response
-    if (!settlementsResponse.ok) {
-      throw new Error(settlementsResponse.status === 404 
-        ? 'No settlements found' 
-        : 'Failed to fetch settlements');
+    try {
+      const settlementsResponse = await fetch(`${API_URL}/settlements`, fetchOptions);
+      if (!settlementsResponse.ok) {
+        throw new Error(`Settlements request failed with status ${settlementsResponse.status}`);
+      }
+      settlementsData = await settlementsResponse.json();
+    } catch (settlementsError) {
+      console.error('Settlements fetch error:', settlementsError);
+      showNotification('Could not load settlements', 'error');
     }
 
-    // Process all responses
-    const [roommatesData, expensesData, settlementsData] = await Promise.all([
-      roommatesResponse.json(),
-      expensesResponse.json(),
-      settlementsResponse.json()
-    ]);
-
-    // Update state with fetched data
+    // Process and set data
     setRoommates(roommatesData || []);
     
     const formattedExpenses = (expensesData || []).map(expense => ({
       ...expense,
-      amount: parseFloat(expense.amount),
-      date: expense.date.split('T')[0], // Ensure consistent date format
-      splitAmong: expense.splitAmong || [] // Ensure array exists
+      amount: parseFloat(expense.amount) || 0,
+      date: expense.date?.split('T')[0] || new Date().toISOString().split('T')[0],
+      splitAmong: Array.isArray(expense.splitAmong) ? expense.splitAmong : []
     }));
+    
     setExpenses(formattedExpenses);
-
     setSettlements(settlementsData || []);
 
   } catch (err) {
-    console.error('Error fetching data:', err);
+    console.error('Data fetching error:', err);
+    setError(err.message);
     
-    // Handle network errors separately
-    if (err.message === 'Failed to fetch') {
+    if (err.message === 'Session expired') {
+      showNotification('Session expired. Please login again.', 'error');
+    } else if (err.message === 'Failed to fetch') {
       showNotification('Network error. Please check your connection.', 'error');
-      setError('Network error');
     } else {
-      showNotification(err.message, 'error');
-      setError(err.message);
+      showNotification('Error loading data. Please try again.', 'error');
     }
-
-    // Reset states if there's an error
-    setRoommates([]);
-    setExpenses([]);
-    setSettlements([]);
+    
+    // Partial state update if some data loaded successfully
+    if (!roommates) setRoommates([]);
+    if (!expenses) setExpenses([]);
+    if (!settlements) setSettlements([]);
     
   } finally {
     setIsLoading(false);
