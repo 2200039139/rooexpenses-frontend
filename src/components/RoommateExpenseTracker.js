@@ -81,75 +81,99 @@ const RoommateExpenseTracker = () => {
   // Fetch data when component mounts
   useEffect(() => {
     const fetchData = async () => {
-      if (!token) return;
-      
-      setIsLoading(true);
-      try {
-        const headers = {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        };
-        
-        // Fetch roommates
-        const roommatesResponse = await fetch(`${API_URL}/roommates`, { headers });
-        if (!roommatesResponse.ok) {
-          if (roommatesResponse.status === 401 || roommatesResponse.status === 403) {
-            handleLogout();
-            throw new Error('Session expired. Please login again');
-          }
-          if (roommatesResponse.status === 404) {
-            setRoommates([]);
-          } else {
-            throw new Error('Failed to fetch roommates');
-          }
-        } else {
-          const roommatesData = await roommatesResponse.json();
-          setRoommates(roommatesData || []);
-        }
-        
-        // Fetch expenses
-        const expensesResponse = await fetch(`${API_URL}/expenses`, { headers });
-        if (!expensesResponse.ok) {
-          if (expensesResponse.status === 404) {
-            setExpenses([]);
-          } else {
-            throw new Error('Failed to fetch expenses');
-          }
-        } else {
-          const expensesData = await expensesResponse.json();
-          const formattedExpenses = expensesData.map(expense => ({
-            ...expense,
-            amount: parseFloat(expense.amount),
-            date: expense.date.split('T')[0],
-            splitAmong: expense.splitAmong || []
-          }));
-          setExpenses(formattedExpenses || []);
-        }
-        
-        // Fetch settlements
-        const settlementsResponse = await fetch(`${API_URL}/settlements`, { headers });
-        if (!settlementsResponse.ok) {
-          if (settlementsResponse.status === 404) {
-            setSettlements([]);
-          } else {
-            throw new Error('Failed to fetch settlements');
-          }
-        } else {
-          const settlementsData = await settlementsResponse.json();
-          setSettlements(settlementsData || []);
-        }
-      } catch (err) {
-        console.error('Error fetching data:', err);
-        if (err.message !== 'Failed to fetch roommates' && 
-            err.message !== 'Failed to fetch expenses' &&
-            err.message !== 'Failed to fetch settlements') {
-          setError(err.message);
-          showNotification(err.message, 'error');
-        }
-      } finally {
-        setIsLoading(false);
-      }
+  if (!token) {
+    showNotification('No authentication token found', 'error');
+    return;
+  }
+
+  setIsLoading(true);
+  setError(null); // Reset error state
+  
+  try {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
     };
+
+    const fetchOptions = {
+      headers,
+      credentials: 'include', // Required for CORS with credentials
+      mode: 'cors' // Explicitly set CORS mode
+    };
+
+    // Parallel fetching for better performance
+    const [roommatesResponse, expensesResponse, settlementsResponse] = await Promise.all([
+      fetch(`${API_URL}/roommates`, fetchOptions),
+      fetch(`${API_URL}/expenses`, fetchOptions),
+      fetch(`${API_URL}/settlements`, fetchOptions)
+    ]);
+
+    // Handle roommates response
+    if (!roommatesResponse.ok) {
+      if (roommatesResponse.status === 401 || roommatesResponse.status === 403) {
+        handleLogout();
+        throw new Error('Session expired. Please login again');
+      }
+      throw new Error(roommatesResponse.status === 404 
+        ? 'No roommates found' 
+        : 'Failed to fetch roommates');
+    }
+
+    // Handle expenses response
+    if (!expensesResponse.ok) {
+      throw new Error(expensesResponse.status === 404 
+        ? 'No expenses found' 
+        : 'Failed to fetch expenses');
+    }
+
+    // Handle settlements response
+    if (!settlementsResponse.ok) {
+      throw new Error(settlementsResponse.status === 404 
+        ? 'No settlements found' 
+        : 'Failed to fetch settlements');
+    }
+
+    // Process all responses
+    const [roommatesData, expensesData, settlementsData] = await Promise.all([
+      roommatesResponse.json(),
+      expensesResponse.json(),
+      settlementsResponse.json()
+    ]);
+
+    // Update state with fetched data
+    setRoommates(roommatesData || []);
+    
+    const formattedExpenses = (expensesData || []).map(expense => ({
+      ...expense,
+      amount: parseFloat(expense.amount),
+      date: expense.date.split('T')[0], // Ensure consistent date format
+      splitAmong: expense.splitAmong || [] // Ensure array exists
+    }));
+    setExpenses(formattedExpenses);
+
+    setSettlements(settlementsData || []);
+
+  } catch (err) {
+    console.error('Error fetching data:', err);
+    
+    // Handle network errors separately
+    if (err.message === 'Failed to fetch') {
+      showNotification('Network error. Please check your connection.', 'error');
+      setError('Network error');
+    } else {
+      showNotification(err.message, 'error');
+      setError(err.message);
+    }
+
+    // Reset states if there's an error
+    setRoommates([]);
+    setExpenses([]);
+    setSettlements([]);
+    
+  } finally {
+    setIsLoading(false);
+  }
+};
     
     fetchData();
   }, [user, token]);
