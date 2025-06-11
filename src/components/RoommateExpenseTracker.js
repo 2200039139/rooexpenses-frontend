@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import './res.css';
 
-const API_URL = 'https://ample-ambition-production.up.railway.app/api';
+// Use environment variables for API URL
+const API_URL = process.env.REACT_APP_API_URL || 'https://ample-ambition-production.up.railway.app/api';
 
 // Currency configuration
 const CURRENCY = {
@@ -26,14 +27,8 @@ const RoommateExpenseTracker = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
   
-  const handleClosePopup = () => {
-    setShowPopup(false);
-  };
-  
   // Authentication state
   const [user, setUser] = useState(JSON.parse(localStorage.getItem('user')) || null);
-
-  
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   
   // Notification state
@@ -50,20 +45,42 @@ const RoommateExpenseTracker = () => {
   });
   const [historyTab, setHistoryTab] = useState('expenses');
 
-  const PopupNotice = ({ onClose }) => (
-    <div className="popup-overlay">
-      <div className="popup-box">
-        <h3>Important Update About Logins</h3>
-        <p>
-          Currently, all roommates in a group share a single login.<br /><br />
-          We're actively working on a major update that will allow <strong>each roommate to have their own personal login</strong>. This means better security, personalized notifications, and a smoother experience for everyone.
-          <br /><br />
-          Thanks for being part of Splitta — we're excited to bring you this upgrade soon!
-        </p>
-        <button className="btn primary" onClick={onClose}>Got it!</button>
-      </div>
-    </div>
-  );
+  // Custom fetch function with error handling
+  const fetchWithAuth = async (endpoint, options = {}) => {
+    const headers = {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${token}`
+    };
+    
+    try {
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        ...options,
+        headers: {
+          ...headers,
+          ...(options.headers || {})
+        }
+      });
+      
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          handleLogout();
+          throw new Error('Session expired. Please login again');
+        }
+        
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || `Request failed with status ${response.status}`);
+      }
+      
+      return await response.json();
+    } catch (error) {
+      console.error(`Error fetching ${endpoint}:`, error);
+      throw error;
+    }
+  };
+
+  const handleClosePopup = () => {
+    setShowPopup(false);
+  };
 
   // Show notification helper function
   const showNotification = (message, type = 'success') => {
@@ -86,75 +103,39 @@ const RoommateExpenseTracker = () => {
       if (!token) return;
       
       setIsLoading(true);
+      setError(null);
+      
       try {
-        const headers = {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        };
+        // Fetch all data in parallel
+        const [roommatesData, expensesData, settlementsData] = await Promise.all([
+          fetchWithAuth('/roommates').catch(() => []),
+          fetchWithAuth('/expenses').catch(() => []),
+          fetchWithAuth('/settlements').catch(() => [])
+        ]);
         
-        // Fetch roommates
-        const roommatesResponse = await fetch(`${API_URL}/roommates`, { headers });
-        if (!roommatesResponse.ok) {
-          if (roommatesResponse.status === 401 || roommatesResponse.status === 403) {
-            handleLogout();
-            throw new Error('Session expired. Please login again');
-          }
-          if (roommatesResponse.status === 404) {
-            setRoommates([]);
-          } else {
-            throw new Error('Failed to fetch roommates');
-          }
-        } else {
-          const roommatesData = await roommatesResponse.json();
-          setRoommates(roommatesData || []);
-        }
+        setRoommates(roommatesData || []);
         
-        // Fetch expenses
-        const expensesResponse = await fetch(`${API_URL}/expenses`, { headers });
-        if (!expensesResponse.ok) {
-          if (expensesResponse.status === 404) {
-            setExpenses([]);
-          } else {
-            throw new Error('Failed to fetch expenses');
-          }
-        } else {
-          const expensesData = await expensesResponse.json();
-          const formattedExpenses = expensesData.map(expense => ({
-            ...expense,
-            amount: parseFloat(expense.amount),
-            date: expense.date.split('T')[0],
-            splitAmong: expense.splitAmong || []
-          }));
-          setExpenses(formattedExpenses || []);
-        }
-
-        // Fetch settlements
-        const settlementsResponse = await fetch(`${API_URL}/settlements`, { headers });
-        if (!settlementsResponse.ok) {
-          if (settlementsResponse.status === 404) {
-            setSettlements([]);
-          } else {
-            throw new Error('Failed to fetch settlements');
-          }
-        } else {
-          const settlementsData = await settlementsResponse.json();
-          setSettlements(settlementsData || []);
-        }
+        // Format expenses data
+        const formattedExpenses = (expensesData || []).map(expense => ({
+          ...expense,
+          amount: parseFloat(expense.amount),
+          date: expense.date.split('T')[0],
+          splitAmong: expense.splitAmong || []
+        }));
+        setExpenses(formattedExpenses);
+        
+        setSettlements(settlementsData || []);
       } catch (err) {
         console.error('Error fetching data:', err);
-        if (err.message !== 'Failed to fetch roommates' && 
-            err.message !== 'Failed to fetch expenses' &&
-            err.message !== 'Failed to fetch settlements') {
-          setError(err.message);
-          showNotification(err.message, 'error');
-        }
+        setError(err.message);
+        showNotification(err.message, 'error');
       } finally {
         setIsLoading(false);
       }
     };
     
     fetchData();
-  }, [user, token]);
+  }, [token]);
 
   // Calculate splits based on expenses and settlements
   const calculateSplits = () => {
@@ -231,12 +212,8 @@ const RoommateExpenseTracker = () => {
     }
 
     try {
-      const response = await fetch(`${API_URL}/settlements`, {
+      const data = await fetchWithAuth('/settlements', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({
           fromId: parseInt(currentSettlement.fromId),
           toId: parseInt(currentSettlement.toId),
@@ -245,17 +222,6 @@ const RoommateExpenseTracker = () => {
         }),
       });
       
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          handleLogout();
-          throw new Error('Session expired. Please login again');
-        }
-        
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to add settlement');
-      }
-      
-      const data = await response.json();
       setSettlements([...settlements, data]);
       setShowSettleModal(false);
       showNotification('Settlement recorded successfully!');
@@ -272,26 +238,11 @@ const RoommateExpenseTracker = () => {
     }
     
     try {
-      const response = await fetch(`${API_URL}/roommates`, {
+      const data = await fetchWithAuth('/roommates', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({ name: newRoommate }),
       });
       
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          handleLogout();
-          throw new Error('Session expired. Please login again');
-        }
-        
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to add roommate');
-      }
-      
-      const data = await response.json();
       setRoommates([...roommates, data]);
       setNewRoommate('');
       showNotification(`${newRoommate} added successfully!`);
@@ -305,22 +256,9 @@ const RoommateExpenseTracker = () => {
     try {
       const roommateToRemove = roommates.find(roommate => roommate.id === id);
       
-      const response = await fetch(`${API_URL}/roommates/${id}`, {
+      await fetchWithAuth(`/roommates/${id}`, {
         method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
       });
-      
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          handleLogout();
-          throw new Error('Session expired. Please login again');
-        }
-        
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to remove roommate');
-      }
       
       setRoommates(roommates.filter(roommate => roommate.id !== id));
       showNotification(`${roommateToRemove.name} removed successfully`, 'info');
@@ -383,12 +321,8 @@ const RoommateExpenseTracker = () => {
     }
 
     try {
-      const response = await fetch(`${API_URL}/expenses`, {
+      const data = await fetchWithAuth('/expenses', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
         body: JSON.stringify({
           description: newExpense.description,
           amount: parseFloat(newExpense.amount),
@@ -398,17 +332,6 @@ const RoommateExpenseTracker = () => {
         }),
       });
       
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          handleLogout();
-          throw new Error('Session expired. Please login again');
-        }
-        
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Failed to add expense');
-      }
-      
-      const data = await response.json();
       setExpenses([...expenses, {
         ...data,
         amount: parseFloat(data.amount),
@@ -421,7 +344,7 @@ const RoommateExpenseTracker = () => {
         description: '',
         amount: '',
         paidBy: '',
-        date: newExpense.date,
+        date: new Date().toISOString().split('T')[0],
         splitAmong: roommates.map(r => r.id)
       });
     } catch (err) {
@@ -442,7 +365,6 @@ const RoommateExpenseTracker = () => {
           splitAmong: roommates.map(r => r.id)
         });
       }
-      showNotification(`Switched to ${tab.charAt(0).toUpperCase() + tab.slice(1)} tab`, 'info');
     }
   };
 
@@ -547,6 +469,21 @@ const RoommateExpenseTracker = () => {
       .sort((a, b) => b.key.localeCompare(a.key));
   };
 
+  const PopupNotice = ({ onClose }) => (
+    <div className="popup-overlay">
+      <div className="popup-box">
+        <h3>Important Update About Logins</h3>
+        <p>
+          Currently, all roommates in a group share a single login.<br /><br />
+          We're actively working on a major update that will allow <strong>each roommate to have their own personal login</strong>. This means better security, personalized notifications, and a smoother experience for everyone.
+          <br /><br />
+          Thanks for being part of Splitta — we're excited to bring you this upgrade soon!
+        </p>
+        <button className="btn primary" onClick={onClose}>Got it!</button>
+      </div>
+    </div>
+  );
+
   if (isLoading) {
     return (
       <div className="app-container">
@@ -645,7 +582,7 @@ const RoommateExpenseTracker = () => {
           <div className="particle"></div>
           <div className="particle"></div>
           <div className="particle"></div>
-          <h1> Splitta (₹)</h1>
+          <h1>Splitta ({CURRENCY.symbol})</h1>
           <p>Track expenses, split bills, and keep roommate finances clear</p>
           
           {user && (
@@ -774,7 +711,7 @@ const RoommateExpenseTracker = () => {
                     <div className="form-group">
                       <label>Amount</label>
                       <div className="input-group">
-                        <span>₹</span>
+                        <span>{CURRENCY.symbol}</span>
                         <input
                           type="number"
                           placeholder="0.00"
@@ -993,13 +930,7 @@ const RoommateExpenseTracker = () => {
                         {expenses
                           .sort((a, b) => new Date(b.date) - new Date(a.date))
                           .map((expense) => {
-                            // Parse the original date
-                            const originalDate = new Date(expense.date);
-                            
-                            // Add 1 day (24 hours) to fix timezone offset issues
-                            const adjustedDate = new Date(originalDate);
-                            adjustedDate.setDate(adjustedDate.getDate() + 1);
-
+                            const date = new Date(expense.date);
                             const paidByRoommate = roommates.find((r) => r.id === parseInt(expense.paidBy));
                             const participants =
                               expense.splitAmong && expense.splitAmong.length > 0
@@ -1010,7 +941,7 @@ const RoommateExpenseTracker = () => {
                             return (
                               <div key={expense.id} className="expense-card">
                                 <div className="expense-date">
-                                  {adjustedDate.toLocaleDateString("en-US", {
+                                  {date.toLocaleDateString("en-US", {
                                     year: "numeric",
                                     month: "short",
                                     day: "numeric",
