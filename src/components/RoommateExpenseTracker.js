@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './res.css';
 
-// Use environment variables for API URL
-const API_URL = process.env.REACT_APP_API_URL || 'https://ample-ambition-production.up.railway.app/api';
+const API_URL = 'http://localhost:5000/api';
 
 // Currency configuration
 const CURRENCY = {
@@ -11,8 +10,16 @@ const CURRENCY = {
   conversionRate: 1,
 };
 
+// Helper function to get week number
+const getWeekNumber = (date) => {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+  const week1 = new Date(d.getFullYear(), 0, 4);
+  return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+};
+
 const RoommateExpenseTracker = () => {
-  const [showPopup, setShowPopup] = useState(true);
   const [roommates, setRoommates] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [newRoommate, setNewRoommate] = useState('');
@@ -44,42 +51,69 @@ const RoommateExpenseTracker = () => {
     date: new Date().toISOString().split('T')[0]
   });
   const [historyTab, setHistoryTab] = useState('expenses');
+  const [expenseViewType, setExpenseViewType] = useState('day');
+  const [sortOrder, setSortOrder] = useState('desc');
 
-  // Custom fetch function with error handling
-  const fetchWithAuth = async (endpoint, options = {}) => {
-    const headers = {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    };
-    
-    try {
-      const response = await fetch(`${API_URL}${endpoint}`, {
-        ...options,
-        headers: {
-          ...headers,
-          ...(options.headers || {})
-        }
-      });
-      
-      if (!response.ok) {
-        if (response.status === 401 || response.status === 403) {
-          handleLogout();
-          throw new Error('Session expired. Please login again');
-        }
-        
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || `Request failed with status ${response.status}`);
+  // Utility functions for grouping expenses
+  const groupByDay = (expenses) => {
+    const grouped = {};
+    expenses.forEach(expense => {
+      const date = new Date(expense.date).toLocaleDateString();
+      if (!grouped[date]) {
+        grouped[date] = {
+          date,
+          total: 0,
+          expenses: []
+        };
       }
-      
-      return await response.json();
-    } catch (error) {
-      console.error(`Error fetching ${endpoint}:`, error);
-      throw error;
-    }
+      grouped[date].total += parseFloat(expense.amount);
+      grouped[date].expenses.push(expense);
+    });
+    return Object.values(grouped);
   };
 
-  const handleClosePopup = () => {
-    setShowPopup(false);
+  const groupByWeek = (expenses) => {
+    const grouped = {};
+    expenses.forEach(expense => {
+      const date = new Date(expense.date);
+      const year = date.getFullYear();
+      const weekNum = getWeekNumber(date);
+      const weekKey = `Week ${weekNum}, ${year}`;
+      
+      if (!grouped[weekKey]) {
+        grouped[weekKey] = {
+          week: weekNum,
+          year,
+          total: 0,
+          expenses: []
+        };
+      }
+      grouped[weekKey].total += parseFloat(expense.amount);
+      grouped[weekKey].expenses.push(expense);
+    });
+    return Object.values(grouped);
+  };
+
+  const groupByMonth = (expenses) => {
+    const grouped = {};
+    expenses.forEach(expense => {
+      const date = new Date(expense.date);
+      const month = date.toLocaleString('default', { month: 'long' });
+      const year = date.getFullYear();
+      const monthKey = `${month} ${year}`;
+      
+      if (!grouped[monthKey]) {
+        grouped[monthKey] = {
+          month,
+          year,
+          total: 0,
+          expenses: []
+        };
+      }
+      grouped[monthKey].total += parseFloat(expense.amount);
+      grouped[monthKey].expenses.push(expense);
+    });
+    return Object.values(grouped);
   };
 
   // Show notification helper function
@@ -103,32 +137,68 @@ const RoommateExpenseTracker = () => {
       if (!token) return;
       
       setIsLoading(true);
-      setError(null);
-      
       try {
-        // Fetch all data in parallel
-        const [roommatesData, expensesData, settlementsData] = await Promise.all([
-          fetchWithAuth('/roommates').catch(() => []),
-          fetchWithAuth('/expenses').catch(() => []),
-          fetchWithAuth('/settlements').catch(() => [])
-        ]);
+        const headers = {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        };
         
-        setRoommates(roommatesData || []);
+        // Fetch roommates
+        const roommatesResponse = await fetch(`${API_URL}/roommates`, { headers });
+        if (!roommatesResponse.ok) {
+          if (roommatesResponse.status === 401 || roommatesResponse.status === 403) {
+            handleLogout();
+            throw new Error('Session expired. Please login again');
+          }
+          if (roommatesResponse.status === 404) {
+            setRoommates([]);
+          } else {
+            throw new Error('Failed to fetch roommates');
+          }
+        } else {
+          const roommatesData = await roommatesResponse.json();
+          setRoommates(roommatesData || []);
+        }
         
-        // Format expenses data
-        const formattedExpenses = (expensesData || []).map(expense => ({
-          ...expense,
-          amount: parseFloat(expense.amount),
-          date: expense.date.split('T')[0],
-          splitAmong: expense.splitAmong || []
-        }));
-        setExpenses(formattedExpenses);
-        
-        setSettlements(settlementsData || []);
+        // Fetch expenses
+        const expensesResponse = await fetch(`${API_URL}/expenses`, { headers });
+        if (!expensesResponse.ok) {
+          if (expensesResponse.status === 404) {
+            setExpenses([]);
+          } else {
+            throw new Error('Failed to fetch expenses');
+          }
+        } else {
+          const expensesData = await expensesResponse.json();
+          const formattedExpenses = expensesData.map(expense => ({
+            ...expense,
+            amount: parseFloat(expense.amount),
+            date: expense.date.split('T')[0],
+            splitAmong: expense.splitAmong || roommates.map(r => r.id)
+          }));
+          setExpenses(formattedExpenses || []);
+        }
+
+        // Fetch settlements
+        const settlementsResponse = await fetch(`${API_URL}/settlements`, { headers });
+        if (!settlementsResponse.ok) {
+          if (settlementsResponse.status === 404) {
+            setSettlements([]);
+          } else {
+            throw new Error('Failed to fetch settlements');
+          }
+        } else {
+          const settlementsData = await settlementsResponse.json();
+          setSettlements(settlementsData || []);
+        }
       } catch (err) {
         console.error('Error fetching data:', err);
-        setError(err.message);
-        showNotification(err.message, 'error');
+        if (err.message !== 'Failed to fetch roommates' && 
+            err.message !== 'Failed to fetch expenses' &&
+            err.message !== 'Failed to fetch settlements') {
+          setError(err.message);
+          showNotification(err.message, 'error');
+        }
       } finally {
         setIsLoading(false);
       }
@@ -153,22 +223,19 @@ const RoommateExpenseTracker = () => {
       
       const participantsForThisExpense = expense.splitAmong && expense.splitAmong.length > 0
         ? expense.splitAmong.map(id => parseInt(id))
-        : [];
+        : roommates.map(r => r.id);
       
-      // Only process if there are participants
-      if (participantsForThisExpense.length > 0) {
-        const splitAmount = amount / participantsForThisExpense.length;
-        
-        if (splits[paidById]) {
-          splits[paidById].paid += amount;
-        }
-        
-        participantsForThisExpense.forEach(participantId => {
-          if (splits[participantId]) {
-            splits[participantId].owes += splitAmount;
-          }
-        });
+      const splitAmount = amount / participantsForThisExpense.length;
+      
+      if (splits[paidById]) {
+        splits[paidById].paid += amount;
       }
+      
+      participantsForThisExpense.forEach(participantId => {
+        if (splits[participantId]) {
+          splits[participantId].owes += splitAmount;
+        }
+      });
     });
 
     // Adjust balances based on settlements
@@ -212,8 +279,12 @@ const RoommateExpenseTracker = () => {
     }
 
     try {
-      const data = await fetchWithAuth('/settlements', {
+      const response = await fetch(`${API_URL}/settlements`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           fromId: parseInt(currentSettlement.fromId),
           toId: parseInt(currentSettlement.toId),
@@ -222,6 +293,17 @@ const RoommateExpenseTracker = () => {
         }),
       });
       
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          handleLogout();
+          throw new Error('Session expired. Please login again');
+        }
+        
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add settlement');
+      }
+      
+      const data = await response.json();
       setSettlements([...settlements, data]);
       setShowSettleModal(false);
       showNotification('Settlement recorded successfully!');
@@ -231,6 +313,46 @@ const RoommateExpenseTracker = () => {
     }
   };
 
+  // Expense Item Component
+  const ExpenseItem = ({ expense, roommates }) => {
+    const paidByRoommate = roommates.find(r => r.id === parseInt(expense.paidBy));
+    const participants = expense.splitAmong && expense.splitAmong.length > 0
+      ? roommates.filter(r => expense.splitAmong.includes(r.id))
+      : roommates;
+    const participantNames = participants.map(r => r.name).join(', ');
+
+    return (
+      <div className="expense-card">
+        <div className="expense-date">
+          {new Date(expense.date).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric'
+          })}
+        </div>
+        
+        <div className="expense-details">
+          <div className="expense-description">
+            {expense.description}
+          </div>
+          
+          <div className="expense-payment">
+            <span className="paid-by">
+              Paid by {paidByRoommate ? paidByRoommate.name : 'Unknown'}
+            </span>
+            <span className="amount">
+              {formatCurrency(parseFloat(expense.amount))}
+            </span>
+          </div>
+          
+          <div className="expense-split">
+            Split among: {participantNames}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Your existing handlers (unchanged)
   const handleAddRoommate = async () => {
     if (newRoommate.trim() === '') {
       showNotification('Please enter a roommate name', 'error');
@@ -238,11 +360,26 @@ const RoommateExpenseTracker = () => {
     }
     
     try {
-      const data = await fetchWithAuth('/roommates', {
+      const response = await fetch(`${API_URL}/roommates`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ name: newRoommate }),
       });
       
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          handleLogout();
+          throw new Error('Session expired. Please login again');
+        }
+        
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add roommate');
+      }
+      
+      const data = await response.json();
       setRoommates([...roommates, data]);
       setNewRoommate('');
       showNotification(`${newRoommate} added successfully!`);
@@ -256,9 +393,22 @@ const RoommateExpenseTracker = () => {
     try {
       const roommateToRemove = roommates.find(roommate => roommate.id === id);
       
-      await fetchWithAuth(`/roommates/${id}`, {
+      const response = await fetch(`${API_URL}/roommates/${id}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
+      
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          handleLogout();
+          throw new Error('Session expired. Please login again');
+        }
+        
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to remove roommate');
+      }
       
       setRoommates(roommates.filter(roommate => roommate.id !== id));
       showNotification(`${roommateToRemove.name} removed successfully`, 'info');
@@ -321,8 +471,12 @@ const RoommateExpenseTracker = () => {
     }
 
     try {
-      const data = await fetchWithAuth('/expenses', {
+      const response = await fetch(`${API_URL}/expenses`, {
         method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           description: newExpense.description,
           amount: parseFloat(newExpense.amount),
@@ -332,10 +486,21 @@ const RoommateExpenseTracker = () => {
         }),
       });
       
+      if (!response.ok) {
+        if (response.status === 401 || response.status === 403) {
+          handleLogout();
+          throw new Error('Session expired. Please login again');
+        }
+        
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to add expense');
+      }
+      
+      const data = await response.json();
       setExpenses([...expenses, {
         ...data,
         amount: parseFloat(data.amount),
-        splitAmong: data.splitAmong || newExpense.splitAmong
+        splitAmong: newExpense.splitAmong
       }]);
       
       showNotification(`Expense "${newExpense.description}" added successfully!`);
@@ -344,7 +509,7 @@ const RoommateExpenseTracker = () => {
         description: '',
         amount: '',
         paidBy: '',
-        date: new Date().toISOString().split('T')[0],
+        date: newExpense.date,
         splitAmong: roommates.map(r => r.id)
       });
     } catch (err) {
@@ -365,6 +530,7 @@ const RoommateExpenseTracker = () => {
           splitAmong: roommates.map(r => r.id)
         });
       }
+      showNotification(`Switched to ${tab.charAt(0).toUpperCase() + tab.slice(1)} tab`, 'info');
     }
   };
 
@@ -374,7 +540,7 @@ const RoommateExpenseTracker = () => {
     setUser(null);
     setToken(null);
     showNotification('Logged out successfully', 'info');
-    window.location.href = '/';
+    window.location.href = '/login';
   };
 
   const splits = calculateSplits();
@@ -442,47 +608,12 @@ const RoommateExpenseTracker = () => {
 
   const paymentSuggestions = generatePaymentSuggestions();
 
-  // Function to calculate monthly expense totals
-  const getMonthlyTotals = () => {
-    if (!expenses || expenses.length === 0) return [];
-    
-    const monthlyData = {};
-    
-    expenses.forEach(expense => {
-      const date = new Date(expense.date);
-      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-      const monthName = date.toLocaleString('default', { month: 'long', year: 'numeric' });
-      
-      if (!monthlyData[monthKey]) {
-        monthlyData[monthKey] = {
-          key: monthKey,
-          name: monthName,
-          total: 0
-        };
-      }
-      
-      monthlyData[monthKey].total += parseFloat(expense.amount);
-    });
-    
-    // Convert to array and sort by date (most recent first)
-    return Object.values(monthlyData)
-      .sort((a, b) => b.key.localeCompare(a.key));
-  };
-
-  const PopupNotice = ({ onClose }) => (
-    <div className="popup-overlay">
-      <div className="popup-box">
-        <h3>Important Update About Logins</h3>
-        <p>
-          Currently, all roommates in a group share a single login.<br /><br />
-          We're actively working on a major update that will allow <strong>each roommate to have their own personal login</strong>. This means better security, personalized notifications, and a smoother experience for everyone.
-          <br /><br />
-          Thanks for being part of Splitta — we're excited to bring you this upgrade soon!
-        </p>
-        <button className="btn primary" onClick={onClose}>Got it!</button>
-      </div>
-    </div>
-  );
+  // Sort expenses based on sortOrder
+  const sortedExpenses = [...expenses].sort((a, b) => {
+    const dateA = new Date(a.date);
+    const dateB = new Date(b.date);
+    return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+  });
 
   if (isLoading) {
     return (
@@ -494,8 +625,6 @@ const RoommateExpenseTracker = () => {
 
   return (
     <div className="app-container">
-      {showPopup && <PopupNotice onClose={handleClosePopup} />}
-      
       {notification.show && (
         <div className={`notification notification-${notification.type}`}>
           <span className="notification-message">{notification.message}</span>
@@ -582,7 +711,7 @@ const RoommateExpenseTracker = () => {
           <div className="particle"></div>
           <div className="particle"></div>
           <div className="particle"></div>
-          <h1>Splitta ({CURRENCY.symbol})</h1>
+          <h1>Room Expense Tracker (₹)</h1>
           <p>Track expenses, split bills, and keep roommate finances clear</p>
           
           {user && (
@@ -711,7 +840,7 @@ const RoommateExpenseTracker = () => {
                     <div className="form-group">
                       <label>Amount</label>
                       <div className="input-group">
-                        <span>{CURRENCY.symbol}</span>
+                        <span>₹</span>
                         <input
                           type="number"
                           placeholder="0.00"
@@ -901,12 +1030,6 @@ const RoommateExpenseTracker = () => {
                       Expenses
                     </button>
                     <button 
-                      className={`sub-tab ${historyTab === 'monthly' ? 'active' : ''}`}
-                      onClick={() => setHistoryTab('monthly')}
-                    >
-                      Monthly
-                    </button>
-                    <button 
                       className={`sub-tab ${historyTab === 'settlements' ? 'active' : ''}`}
                       onClick={() => setHistoryTab('settlements')}
                     >
@@ -926,78 +1049,100 @@ const RoommateExpenseTracker = () => {
                         </button>
                       </div>
                     ) : (
-                      <div className="expenses-list">
-                        {expenses
-                          .sort((a, b) => new Date(b.date) - new Date(a.date))
-                          .map((expense) => {
-                            const date = new Date(expense.date);
-                            const paidByRoommate = roommates.find((r) => r.id === parseInt(expense.paidBy));
-                            const participants =
-                              expense.splitAmong && expense.splitAmong.length > 0
-                                ? roommates.filter((r) => expense.splitAmong.includes(r.id))
-                                : [];
-                            const participantNames = participants.map((r) => r.name).join(", ");
-
-                            return (
-                              <div key={expense.id} className="expense-card">
-                                <div className="expense-date">
-                                  {date.toLocaleDateString("en-US", {
-                                    year: "numeric",
-                                    month: "short",
-                                    day: "numeric",
-                                  })}
-                                </div>
-
-                                <div className="expense-details">
-                                  <div className="expense-description">{expense.description}</div>
-
-                                  <div className="expense-payment">
-                                    <span className="paid-by">
-                                      Paid by {paidByRoommate ? paidByRoommate.name : "Unknown"}
-                                    </span>
-                                    <span className="amount">
-                                      {formatCurrency(parseFloat(expense.amount))}
-                                    </span>
-                                  </div>
-
-                                  {participants.length > 0 && (
-                                    <>
-                                      <div className="expense-split">
-                                        Split among: {participantNames}
-                                      </div>
-                                      <div className="expense-split">
-                                        Split amount:{" "}
-                                        {formatCurrency(parseFloat(expense.amount) / participants.length)}{" "}
-                                        per person
-                                      </div>
-                                    </>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          })}
-                      </div>
-                    )
-                  ) : historyTab === 'monthly' ? (
-                    expenses.length === 0 ? (
-                      <div className="empty-state">
-                        <p>No expenses added yet. Add your first expense to see monthly totals.</p>
-                        <button 
-                          className="redirect-button"
-                          onClick={() => setActiveTab('expenses')}
-                        >
-                          Add Expenses
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="monthly-view">
-                        {getMonthlyTotals().map(month => (
-                          <div key={month.key} className="month-card">
-                            <h3 className="month-name">{month.name}</h3>
-                            <div className="month-amount">{formatCurrency(month.total)}</div>
+                      <>
+                        <div className="view-controls">
+                          <div className="view-type-selector">
+                            <button
+                              className={`view-type-btn ${expenseViewType === 'day' ? 'active' : ''}`}
+                              onClick={() => setExpenseViewType('day')}
+                            >
+                              Daily
+                            </button>
+                            <button
+                              className={`view-type-btn ${expenseViewType === 'week' ? 'active' : ''}`}
+                              onClick={() => setExpenseViewType('week')}
+                            >
+                              Weekly
+                            </button>
+                            <button
+                              className={`view-type-btn ${expenseViewType === 'month' ? 'active' : ''}`}
+                              onClick={() => setExpenseViewType('month')}
+                            >
+                              Monthly
+                            </button>
                           </div>
-                        ))}
-                      </div>
+                          <div className="sort-controls">
+                            <span>Sort by: </span>
+                            <select 
+                              value={sortOrder}
+                              onChange={(e) => setSortOrder(e.target.value)}
+                            >
+                              <option value="desc">Newest First</option>
+                              <option value="asc">Oldest First</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        {expenseViewType === 'day' && (
+                          <div className="expenses-grouped">
+                            {groupByDay(sortedExpenses).map((group, index) => (
+                              <div key={index} className="expense-group">
+                                <div className="group-header">
+                                  <h4>{group.date}</h4>
+                                  <span className="group-total">{formatCurrency(group.total)}</span>
+                                </div>
+                                {group.expenses.map(expense => (
+                                  <ExpenseItem 
+                                    key={expense.id} 
+                                    expense={expense} 
+                                    roommates={roommates}
+                                  />
+                                ))}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {expenseViewType === 'week' && (
+                          <div className="expenses-grouped">
+                            {groupByWeek(sortedExpenses).map((group, index) => (
+                              <div key={index} className="expense-group">
+                                <div className="group-header">
+                                  <h4>{`Week ${group.week}, ${group.year}`}</h4>
+                                  <span className="group-total">{formatCurrency(group.total)}</span>
+                                </div>
+                                {group.expenses.map(expense => (
+                                  <ExpenseItem 
+                                    key={expense.id} 
+                                    expense={expense} 
+                                    roommates={roommates}
+                                  />
+                                ))}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {expenseViewType === 'month' && (
+                          <div className="expenses-grouped">
+                            {groupByMonth(sortedExpenses).map((group, index) => (
+                              <div key={index} className="expense-group">
+                                <div className="group-header">
+                                  <h4>{`${group.month} ${group.year}`}</h4>
+                                  <span className="group-total">{formatCurrency(group.total)}</span>
+                                </div>
+                                {group.expenses.map(expense => (
+                                  <ExpenseItem 
+                                    key={expense.id} 
+                                    expense={expense} 
+                                    roommates={roommates}
+                                  />
+                                ))}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </>
                     )
                   ) : (
                     settlements.length === 0 ? (
@@ -1048,3 +1193,8 @@ const RoommateExpenseTracker = () => {
 };
 
 export default RoommateExpenseTracker;
+
+
+
+
+
