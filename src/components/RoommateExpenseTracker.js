@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './res.css';
 
-const API_URL = 'http://localhost:5000/api';
+const API_URL = 'https://ample-ambition-production.up.railway.app/api';
 
 // Currency configuration
 const CURRENCY = {
@@ -140,11 +140,16 @@ const RoommateExpenseTracker = () => {
       try {
         const headers = {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Access-Control-Allow-Origin': '*'
         };
         
         // Fetch roommates
-        const roommatesResponse = await fetch(`${API_URL}/roommates`, { headers });
+        const roommatesResponse = await fetch(`${API_URL}/roommates`, { 
+          headers,
+          mode: 'cors'
+        });
+        
         if (!roommatesResponse.ok) {
           if (roommatesResponse.status === 401 || roommatesResponse.status === 403) {
             handleLogout();
@@ -161,7 +166,11 @@ const RoommateExpenseTracker = () => {
         }
         
         // Fetch expenses
-        const expensesResponse = await fetch(`${API_URL}/expenses`, { headers });
+        const expensesResponse = await fetch(`${API_URL}/expenses`, { 
+          headers,
+          mode: 'cors'
+        });
+        
         if (!expensesResponse.ok) {
           if (expensesResponse.status === 404) {
             setExpenses([]);
@@ -180,7 +189,11 @@ const RoommateExpenseTracker = () => {
         }
 
         // Fetch settlements
-        const settlementsResponse = await fetch(`${API_URL}/settlements`, { headers });
+        const settlementsResponse = await fetch(`${API_URL}/settlements`, { 
+          headers,
+          mode: 'cors'
+        });
+        
         if (!settlementsResponse.ok) {
           if (settlementsResponse.status === 404) {
             setSettlements([]);
@@ -283,7 +296,8 @@ const RoommateExpenseTracker = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Access-Control-Allow-Origin': '*'
         },
         body: JSON.stringify({
           fromId: parseInt(currentSettlement.fromId),
@@ -291,6 +305,7 @@ const RoommateExpenseTracker = () => {
           amount: parseFloat(currentSettlement.amount),
           date: currentSettlement.date
         }),
+        mode: 'cors'
       });
       
       if (!response.ok) {
@@ -352,7 +367,6 @@ const RoommateExpenseTracker = () => {
     );
   };
 
-  // Your existing handlers (unchanged)
   const handleAddRoommate = async () => {
     if (newRoommate.trim() === '') {
       showNotification('Please enter a roommate name', 'error');
@@ -364,9 +378,11 @@ const RoommateExpenseTracker = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Access-Control-Allow-Origin': '*'
         },
         body: JSON.stringify({ name: newRoommate }),
+        mode: 'cors'
       });
       
       if (!response.ok) {
@@ -396,8 +412,10 @@ const RoommateExpenseTracker = () => {
       const response = await fetch(`${API_URL}/roommates/${id}`, {
         method: 'DELETE',
         headers: {
-          'Authorization': `Bearer ${token}`
-        }
+          'Authorization': `Bearer ${token}`,
+          'Access-Control-Allow-Origin': '*'
+        },
+        mode: 'cors'
       });
       
       if (!response.ok) {
@@ -475,7 +493,8 @@ const RoommateExpenseTracker = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
+          'Access-Control-Allow-Origin': '*'
         },
         body: JSON.stringify({
           description: newExpense.description,
@@ -484,6 +503,7 @@ const RoommateExpenseTracker = () => {
           date: newExpense.date,
           splitAmong: newExpense.splitAmong
         }),
+        mode: 'cors'
       });
       
       if (!response.ok) {
@@ -1106,95 +1126,95 @@ const RoommateExpenseTracker = () => {
                         {expenseViewType === 'week' && (
                           <div className="expenses-grouped">
                             {groupByWeek(sortedExpenses).map((group, index) => (
-                              <div key={index} className="expense-group">
-                                <div className="group-header">
-                                  <h4>{`Week ${group.week}, ${group.year}`}</h4>
-                                  <span className="group-total">{formatCurrency(group.total)}</span>
-                                </div>
-                                {group.expenses.map(expense => (
-                                  <ExpenseItem 
-                                    key={expense.id} 
-                                    expense={expense} 
-                                    roommates={roommates}
-                                  />
-                                ))}
-                              </div>
+<div key={index} className="expense-group">
+<div className="group-header">
+<h4>Week {group.week}, {group.year}</h4>
+<span className="group-total">{formatCurrency(group.total)}</span>
+</div>
+{group.expenses.map(expense => (
+<ExpenseItem key={expense.id} expense={expense} roommates={roommates} />
+))}
+</div>
+))}
+</div>
+)}
+ {expenseViewType === 'month' && (
+                      <div className="expenses-grouped">
+                        {groupByMonth(sortedExpenses).map((group, index) => (
+                          <div key={index} className="expense-group">
+                            <div className="group-header">
+                              <h4>{group.month} {group.year}</h4>
+                              <span className="group-total">{formatCurrency(group.total)}</span>
+                            </div>
+                            {group.expenses.map(expense => (
+                              <ExpenseItem 
+                                key={expense.id} 
+                                expense={expense} 
+                                roommates={roommates}
+                              />
                             ))}
                           </div>
-                        )}
-
-                        {expenseViewType === 'month' && (
-                          <div className="expenses-grouped">
-                            {groupByMonth(sortedExpenses).map((group, index) => (
-                              <div key={index} className="expense-group">
-                                <div className="group-header">
-                                  <h4>{`${group.month} ${group.year}`}</h4>
-                                  <span className="group-total">{formatCurrency(group.total)}</span>
-                                </div>
-                                {group.expenses.map(expense => (
-                                  <ExpenseItem 
-                                    key={expense.id} 
-                                    expense={expense} 
-                                    roommates={roommates}
-                                  />
-                                ))}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </>
-                    )
-                  ) : (
-                    settlements.length === 0 ? (
-                      <div className="empty-state">
-                        <p>No settlements recorded yet.</p>
+                        ))}
                       </div>
-                    ) : (
-                      <div className="settlements-list">
-                        {settlements
-                          .sort((a, b) => new Date(b.date) - new Date(a.date))
-                          .map(settlement => {
-                            const fromRoommate = roommates.find(r => r.id === parseInt(settlement.fromId));
-                            const toRoommate = roommates.find(r => r.id === parseInt(settlement.toId));
-                            
-                            return (
-                              <div key={settlement.id} className="settlement-card">
-                                <div className="settlement-date">
+                    )}
+                  </>
+                )
+              ) : (
+                settlements.length === 0 ? (
+                  <div className="empty-state">
+                    <p>No settlements recorded yet.</p>
+                  </div>
+                ) : (
+                  <div className="settlements-list">
+                    {settlements
+                      .sort((a, b) => new Date(b.date) - new Date(a.date))
+                      .map((settlement, index) => {
+                        const fromRoommate = roommates.find(r => r.id === parseInt(settlement.fromId));
+                        const toRoommate = roommates.find(r => r.id === parseInt(settlement.toId));
+                        
+                        return (
+                          <div key={index} className="settlement-card">
+                            <div className="settlement-details">
+                              <div className="settlement-direction">
+                                <div className="avatar">
+                                  {fromRoommate?.name.charAt(0).toUpperCase()}
+                                </div>
+                                <span>→</span>
+                                <div className="avatar">
+                                  {toRoommate?.name.charAt(0).toUpperCase()}
+                                </div>
+                              </div>
+                              
+                              <div className="settlement-info">
+                                <p>
+                                  {fromRoommate?.name || 'Unknown'} paid {toRoommate?.name || 'Unknown'} {formatCurrency(parseFloat(settlement.amount))}
+                                </p>
+                                <p className="settlement-date">
                                   {new Date(settlement.date).toLocaleDateString('en-US', {
-                                    year: 'numeric',
                                     month: 'short',
-                                    day: 'numeric'
+                                    day: 'numeric',
+                                    year: 'numeric'
                                   })}
-                                </div>
-                                
-                                <div className="settlement-details">
-                                  <div className="settlement-description">
-                                    {fromRoommate?.name || 'Unknown'} paid {toRoommate?.name || 'Unknown'}
-                                  </div>
-                                  
-                                  <div className="settlement-amount">
-                                    {formatCurrency(parseFloat(settlement.amount))}
-                                  </div>
-                                </div>
+                                </p>
                               </div>
-                            );
-                          })}
-                      </div>
-                    )
-                  )}
-                </>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )
               )}
-            </div>
+            </>
           )}
         </div>
-      </div>
+      )}
     </div>
-  );
+  </div>
+  
+  <footer className="app-footer">
+    <p>Room Expense Tracker © {new Date().getFullYear()}</p>
+    <p className="hint">All amounts in {CURRENCY.code} ({CURRENCY.symbol})</p>
+  </footer>
+</div>
+);
 };
-
-export default RoommateExpenseTracker;
-
-
-
-
-
