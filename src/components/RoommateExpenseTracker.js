@@ -19,7 +19,7 @@ const getWeekNumber = (date) => {
   return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
 };
 
-const Dashboard = () => {
+const RoommateExpenseTracker = () => {
   const [roommates, setRoommates] = useState([]);
   const [expenses, setExpenses] = useState([]);
   const [newRoommate, setNewRoommate] = useState('');
@@ -1218,4 +1218,4 @@ const Dashboard = () => {
 </div>
 );
 };
-export default Dashboard;
+export default RoommateExpenseTracker;
