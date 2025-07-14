@@ -1218,3 +1218,5 @@ const RoommateExpenseTracker = () => {
 </div>
 );
 };
+
+            export default RoommateExpenseTracker;
