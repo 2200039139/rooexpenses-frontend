@@ -2,7 +2,7 @@ import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import LoginPage from './components/LoginPage';
 import SignupPage from './components/SignupPage';
-import Dashboard from './components/RoommateExpenseTracker';
+import RoommateExpenseTracker from './components/RoommateExpenseTracker';
 import HomePage from './components/Homepage';
 
 // Updated PrivateRoute for React Router v6
@@ -25,7 +25,7 @@ function App() {
         {/* Protected routes */}
         <Route 
           path="/dashboard" 
-          element={<PrivateRoute element={Dashboard} />} 
+          element={<PrivateRoute element={RoommateExpenseTracker} />} 
         />
       
         
