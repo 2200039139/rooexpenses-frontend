@@ -79,7 +79,7 @@ const SignupPage = () => {
       
       localStorage.setItem('user', JSON.stringify(data.user));
       localStorage.setItem('token', data.token);
-      navigate('/dashboard');
+      navigate('/login');
     } catch (err) {
       setError(err.message || 'Failed to sign up with Google');
     } finally {
