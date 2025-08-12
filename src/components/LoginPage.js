@@ -45,7 +45,7 @@ const LoginPage = () => {
     setIsLoading(true);
     
     try {
-      const backendResponse = await fetch('https://ample-ambition-production.up.railway.app/api/users/google-auth', {
+      const backendResponse = await fetch('https://room-backend-production.up.railway.app/api/users/google-auth', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -91,7 +91,7 @@ const LoginPage = () => {
     }
     
     try {
-      const response = await fetch('https://ample-ambition-production.up.railway.app/api/users/login', {
+      const response = await fetch('https://room-backend-production.up.railway.app/api/users/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
