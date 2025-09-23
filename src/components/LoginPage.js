@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FiArrowLeft,  FiCheck, FiInfo } from 'react-icons/fi';
+import { FiArrowLeft, FiCheck, FiInfo } from 'react-icons/fi';
 import './Lg.css';
 
 const LoginPage = () => {
@@ -39,10 +39,11 @@ const LoginPage = () => {
         document.body.removeChild(script);
       }
     };
-  }, );
+  }, []);
 
   const handleGoogleResponse = async (response) => {
     setIsLoading(true);
+    setError('');
     
     try {
       const backendResponse = await fetch('https://ample-ambition-production.up.railway.app/api/users/google-auth', {
@@ -55,11 +56,12 @@ const LoginPage = () => {
         }),
       });
       
-      const data = await backendResponse.json();
-      
       if (!backendResponse.ok) {
-        throw new Error(data.error || 'Google login failed');
+        const errorData = await backendResponse.json();
+        throw new Error(errorData.error || 'Google login failed');
       }
+      
+      const data = await backendResponse.json();
       
       localStorage.setItem('user', JSON.stringify(data.user));
       localStorage.setItem('token', data.token);
@@ -103,11 +105,12 @@ const LoginPage = () => {
         }),
       });
       
-      const data = await response.json();
-      
       if (!response.ok) {
-        throw new Error(data.error || 'Login failed');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Login failed');
       }
+      
+      const data = await response.json();
       
       localStorage.setItem('user', JSON.stringify(data.user));
       localStorage.setItem('token', data.token);
@@ -128,7 +131,6 @@ const LoginPage = () => {
             <FiArrowLeft size={18} />
           </button>
 
-          
           <div className="login-header">
             <h2>Login to Splitta</h2>
             <p className="subtitle">Track and split shared expenses with ease</p>
