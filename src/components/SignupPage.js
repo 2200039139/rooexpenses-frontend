@@ -10,6 +10,7 @@ import {
   FiUsers,
   FiPieChart,
   FiBell,
+  FiLock,
   FiClock,
   FiStar,
   FiShield,
