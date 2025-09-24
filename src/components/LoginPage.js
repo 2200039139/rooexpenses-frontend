@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { FiArrowLeft, FiCheck, FiInfo } from 'react-icons/fi';
+import { FiArrowLeft, FiCheck, FiInfo, FiEye, FiEyeOff } from 'react-icons/fi';
 import './Lg.css';
 
 const LoginPage = () => {
@@ -12,6 +12,7 @@ const LoginPage = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   // Initialize Google Sign-In API
   useEffect(() => {
@@ -27,10 +28,16 @@ const LoginPage = () => {
           client_id: '37085501976-b54lfva9uchil1jq6boc6vt4jb1bqb5d.apps.googleusercontent.com',
           callback: handleGoogleResponse
         });
-        window.google.accounts.id.renderButton(
-          document.getElementById('google-login-button'),
-          { theme: 'outline', size: 'large', width: '100%', text: 'continue_with' }
-        );
+        
+        const button = document.getElementById('google-login-button');
+        if (button) {
+          window.google.accounts.id.renderButton(button, {
+            theme: 'outline',
+            size: 'large',
+            width: '100%',
+            text: 'continue_with'
+          });
+        }
       }
     };
 
@@ -56,16 +63,24 @@ const LoginPage = () => {
         }),
       });
       
-      if (!backendResponse.ok) {
-        const errorData = await backendResponse.json();
-        throw new Error(errorData.error || 'Google login failed');
-      }
-      
       const data = await backendResponse.json();
       
-      localStorage.setItem('user', JSON.stringify(data.user));
-      localStorage.setItem('token', data.token);
-      navigate('/dashboard');
+      if (!backendResponse.ok) {
+        throw new Error(data.message || 'Google login failed');
+      }
+      
+      if (data.success) {
+        localStorage.setItem('user', JSON.stringify(data.data.user));
+        localStorage.setItem('token', data.data.token);
+        
+        if (rememberMe) {
+          localStorage.setItem('rememberMe', 'true');
+        }
+        
+        navigate('/dashboard');
+      } else {
+        throw new Error(data.message || 'Login failed');
+      }
     } catch (err) {
       setError(err.message || 'Failed to login with Google');
     } finally {
@@ -101,20 +116,27 @@ const LoginPage = () => {
         body: JSON.stringify({
           email: formData.email,
           password: formData.password,
-          rememberMe
         }),
       });
       
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || 'Login failed');
-      }
-      
       const data = await response.json();
       
-      localStorage.setItem('user', JSON.stringify(data.user));
-      localStorage.setItem('token', data.token);
-      navigate('/dashboard');
+      if (!response.ok) {
+        throw new Error(data.message || 'Login failed');
+      }
+      
+      if (data.success) {
+        localStorage.setItem('user', JSON.stringify(data.data.user));
+        localStorage.setItem('token', data.data.token);
+        
+        if (rememberMe) {
+          localStorage.setItem('rememberMe', 'true');
+        }
+        
+        navigate('/dashboard');
+      } else {
+        throw new Error(data.message || 'Login failed');
+      }
     } catch (err) {
       setError(err.message || 'Invalid email or password');
     } finally {
@@ -122,12 +144,49 @@ const LoginPage = () => {
     }
   };
 
+  const PasswordStrengthIndicator = ({ password }) => {
+    const getStrength = (pass) => {
+      if (pass.length === 0) return 0;
+      if (pass.length < 8) return 1;
+      
+      let strength = 0;
+      if (pass.length >= 8) strength++;
+      if (/[A-Z]/.test(pass)) strength++;
+      if (/[0-9]/.test(pass)) strength++;
+      if (/[^A-Za-z0-9]/.test(pass)) strength++;
+      
+      return strength;
+    };
+
+    const strength = getStrength(password);
+    const strengthLabels = ['Very Weak', 'Weak', 'Fair', 'Good', 'Strong'];
+    
+    return (
+      <div className="password-strength">
+        <div className="strength-bars">
+          {[1, 2, 3, 4].map((level) => (
+            <div
+              key={level}
+              className={`strength-bar ${strength >= level ? 'active' : ''} strength-${strength}`}
+            />
+          ))}
+        </div>
+        <span className="strength-label">{password ? strengthLabels[strength] : 'Enter password'}</span>
+      </div>
+    );
+  };
+
   return (
     <div className="split-container">
       {/* Left side - Login form */}
       <div className="login-side">
         <div className="login-card">
-          <button className="back-button" onClick={() => navigate('/')}>
+          <button 
+            className="back-button" 
+            onClick={() => navigate('/')}
+            type="button"
+            disabled={isLoading}
+          >
             <FiArrowLeft size={18} />
           </button>
 
@@ -155,23 +214,34 @@ const LoginPage = () => {
                   onChange={handleChange}
                   placeholder="your@email.com"
                   required
+                  disabled={isLoading}
                 />
               </div>
             </div>
             
             <div className="form-group">
               <label htmlFor="password">Password</label>
-              <div className="input-with-icon">
+              <div className="input-with-password">
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   id="password"
                   name="password"
                   value={formData.password}
                   onChange={handleChange}
                   placeholder="••••••••"
                   required
+                  disabled={isLoading}
                 />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowPassword(!showPassword)}
+                  disabled={isLoading}
+                >
+                  {showPassword ? <FiEyeOff size={18} /> : <FiEye size={18} />}
+                </button>
               </div>
+              <PasswordStrengthIndicator password={formData.password} />
             </div>
             
             <div className="form-options">
@@ -181,6 +251,7 @@ const LoginPage = () => {
                   id="remember"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
+                  disabled={isLoading}
                 />
                 <label htmlFor="remember">Remember me</label>
               </div>
@@ -200,13 +271,13 @@ const LoginPage = () => {
                   <span className="spinner"></span>
                   <span>Logging in...</span>
                 </>
-              ) : 'Next'}
+              ) : 'Login'}
             </button>
           </form>
           
           <div className="separator">
             <span className="separator-line"></span>
-            <span className="separator-text">or</span>
+            <span className="separator-text">or continue with</span>
             <span className="separator-line"></span>
           </div>
           
@@ -221,11 +292,13 @@ const LoginPage = () => {
       {/* Right side - Informational content */}
       <div className="info-side">
         <div className="info-content">
-          <div className="info-logo">Splitta</div>
-          <h3>Did you know?</h3>
-          <p className="statistic">Splitta helps thousands of roommates manage over $1M in shared expenses every month.</p>
+          <div className="info-logo">
+            <span className="logo-highlight">Spl</span>itta
+          </div>
+          <h3>Smart Expense Splitting Made Simple</h3>
+          <p className="statistic">Join thousands of roommates managing over $1M in shared expenses every month.</p>
           
-          <div className="testimonial">
+          <div className="testimonial-card">
             <p className="quote">"This app saved us countless hours of calculating who owes what. Now we just log expenses and it does all the math for us!"</p>
             <p className="author">- Sarah & Roommates, Vijayawada</p>
           </div>
@@ -243,10 +316,15 @@ const LoginPage = () => {
               <FiCheck className="feature-icon" />
               <span>Get payment reminders and notifications</span>
             </div>
+            <div className="feature-item">
+              <FiCheck className="feature-icon" />
+              <span>Secure bank-level encryption</span>
+            </div>
           </div>
           
-          <div className="thank-you">
-            <p>Thank you for being our valued user!</p>
+          <div className="security-badge">
+            <FiCheck className="security-icon" />
+            <span>256-bit SSL Encryption • GDPR Compliant</span>
           </div>
         </div>
       </div>
